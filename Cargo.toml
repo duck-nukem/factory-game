@@ -1,0 +1,34 @@
+[workspace]
+
+[package]
+name = "faktori"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 3
+
+[lints.clippy]
+complexity   = { priority = -1, level = "deny" }
+correctness  = { priority = -1, level = "deny" }
+nursery      = { priority = -1, level = "deny" }
+pedantic     = { priority = -1, level = "deny" }
+perf         = { priority = -1, level = "deny" }
+style        = { priority = -1, level = "deny" }
+suspicious   = { priority = -1, level = "deny" }
+
+diverging_sub_expression = "allow"
+expect-used              = "deny"
+items_after_statements   = "allow"
+missing_errors_doc       = "allow"
+redundant-clone          = "deny"
+unwrap-used              = "deny"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
