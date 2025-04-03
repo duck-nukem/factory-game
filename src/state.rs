@@ -1,20 +1,45 @@
+use std::fmt::Display;
+
 use crate::card::CardMeta;
 
-struct GameState {
-    accrued_profit: f64,
-    accumulated_co2_emission: f64,
-    played_cards: Vec<CardMeta>,
+#[derive(Debug, PartialEq, Eq)]
+pub enum PlaythroughStatus {
+    Ongoing,
+    GameOver,
+    Beaten,
 }
 
-fn initialize_state() -> GameState {
-    return GameState {
+#[derive(Debug)]
+pub struct GameState {
+    pub accrued_profit: f64,
+    pub accumulated_co2_emission: f64,
+    pub played_cards: Vec<CardMeta>,
+    pub playthrough_status: PlaythroughStatus,
+}
+
+impl Display for GameState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Profit {0}; CO2e: {1} -- Round {2}",
+            self.accrued_profit,
+            self.accumulated_co2_emission,
+            self.played_cards.len()
+        )
+    }
+}
+
+#[must_use]
+pub const fn initialize_state() -> GameState {
+    GameState {
         accrued_profit: 0.0,
         accumulated_co2_emission: 0.0,
         played_cards: vec![],
-    };
+        playthrough_status: PlaythroughStatus::Ongoing,
+    }
 }
 
-enum Action {
+pub enum Action {
     AcquireProfit(f64),
     SetProfitExactly(f64),
     IncreaseCo2Emission(f64),
@@ -22,8 +47,9 @@ enum Action {
     PlayCard(CardMeta),
 }
 
-fn game_state_reducer(state: GameState, action: Action) -> GameState {
-    let updated_state = match action {
+#[must_use]
+pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
+    match action {
         Action::AcquireProfit(incoming_amount) => GameState {
             accrued_profit: state.accrued_profit + incoming_amount,
             ..state
@@ -40,15 +66,27 @@ fn game_state_reducer(state: GameState, action: Action) -> GameState {
             accumulated_co2_emission: state.accumulated_co2_emission + co2_emission_decrease,
             ..state
         },
-        Action::PlayCard(card) => GameState {
-            accrued_profit: state.accrued_profit + card.delta_profit,
-            accumulated_co2_emission: state.accumulated_co2_emission + card.delta_co2,
-            played_cards: state.played_cards.into_iter().chain(vec![card]).collect(),
-            ..state
-        },
-    };
+        Action::PlayCard(card) => {
+            let accrued_profit = state.accrued_profit + card.delta_profit;
+            let accumulated_co2_emission = state.accumulated_co2_emission + card.delta_co2;
+            let played_cards: Vec<CardMeta> =
+                state.played_cards.into_iter().chain(vec![card]).collect();
+            let mut playthrough_status = PlaythroughStatus::Ongoing;
 
-    return updated_state;
+            if accrued_profit < 0.0 || accumulated_co2_emission >= 100.0 {
+                playthrough_status = PlaythroughStatus::GameOver;
+            } else if played_cards.len() > 8 {
+                playthrough_status = PlaythroughStatus::Beaten;
+            }
+
+            GameState {
+                accrued_profit,
+                accumulated_co2_emission,
+                played_cards,
+                playthrough_status,
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -149,5 +187,53 @@ mod tests {
             state.played_cards.last().unwrap().title,
             String::from("Win machinery")
         );
+    }
+
+    #[test]
+    fn test_reaching_negative_profits_results_in_game_over() {
+        let initial_state = initialize_state();
+        let played_card_meta = CardMeta {
+            title: String::from("A card"),
+            help_text: String::from("Nobody will read this... will they?"),
+            delta_profit: -5.0,
+            delta_co2: 5.0,
+        };
+
+        let state = game_state_reducer(initial_state, Action::PlayCard(played_card_meta));
+
+        assert_eq!(PlaythroughStatus::GameOver, state.playthrough_status);
+    }
+
+    #[test]
+    fn test_reaching_higher_co2_than_the_threshold_results_in_game_over() {
+        let initial_state = initialize_state();
+        let played_card_meta = CardMeta {
+            title: String::from("A card"),
+            help_text: String::from("Nobody will read this... will they?"),
+            delta_profit: -5.0,
+            delta_co2: 110.0,
+        };
+
+        let state = game_state_reducer(initial_state, Action::PlayCard(played_card_meta));
+
+        assert_eq!(PlaythroughStatus::GameOver, state.playthrough_status);
+    }
+
+    #[test]
+    fn test_completing_the_required_rounds_results_in_winning() {
+        let mut state = initialize_state();
+        let played_card_meta = CardMeta {
+            title: String::from("A card"),
+            help_text: String::from("Nobody will read this... will they?"),
+            delta_profit: 1.0,
+            delta_co2: 0.0,
+        };
+        let rounds_required_to_win = 8;
+
+        for _ in 0..rounds_required_to_win + 1 {
+            state = game_state_reducer(state, Action::PlayCard(played_card_meta.clone()));
+        }
+
+        assert_eq!(PlaythroughStatus::Beaten, state.playthrough_status);
     }
 }
