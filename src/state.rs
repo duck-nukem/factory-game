@@ -247,9 +247,8 @@ mod tests {
             delta_profit: 1.0,
             delta_co2: 0.0,
         };
-        let rounds_required_to_win = 8;
 
-        for _ in 0..rounds_required_to_win + 1 {
+        for _ in 0..REQUIRED_ROUNDS_TO_BEAT_THE_GAME + 1 {
             state = game_state_reducer(state, Action::PlayCard(played_card_meta.clone()));
         }
 
