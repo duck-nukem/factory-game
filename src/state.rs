@@ -21,7 +21,7 @@ impl Display for GameState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Profit {0}; CO2e: {1} -- Round {2}",
+            "{0}¢ & {1} tCO₂e @ Round {2}",
             self.accrued_profit,
             self.accumulated_co2_emission,
             self.played_cards.len()
@@ -46,6 +46,10 @@ pub enum Action {
     ReduceCo2Emission(f64),
     PlayCard(CardMeta),
 }
+
+const BANKRUPTCY_THRESHOLD: f64 = 0.0;
+const CATASTROPHIC_POLLUTION_THRESHOLD: f64 = 100.0;
+const REQUIRED_ROUNDS_TO_BEAT_THE_GAME: usize = 8;
 
 #[must_use]
 pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
@@ -72,9 +76,11 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
             let played_cards: Vec<CardMeta> =
                 state.played_cards.into_iter().chain(vec![card]).collect();
 
-            let playthrough_status = if accrued_profit < 0.0 || accumulated_co2_emission >= 100.0 {
+            let playthrough_status = if accrued_profit <= BANKRUPTCY_THRESHOLD
+                || accumulated_co2_emission >= CATASTROPHIC_POLLUTION_THRESHOLD
+            {
                 PlaythroughStatus::GameOver
-            } else if played_cards.len() > 8 {
+            } else if played_cards.len() > REQUIRED_ROUNDS_TO_BEAT_THE_GAME {
                 PlaythroughStatus::Beaten
             } else {
                 state.playthrough_status
@@ -191,13 +197,30 @@ mod tests {
     }
 
     #[test]
-    fn test_reaching_negative_profits_results_in_game_over() {
-        let initial_state = initialize_state();
+    fn test_reaching_negative_profit_results_in_game_over() {
+        let mut initial_state = initialize_state();
+        initial_state.accrued_profit = BANKRUPTCY_THRESHOLD;
         let played_card_meta = CardMeta {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),
-            delta_profit: -5.0,
-            delta_co2: 5.0,
+            delta_profit: -1.0,
+            delta_co2: 0.0,
+        };
+
+        let state = game_state_reducer(initial_state, Action::PlayCard(played_card_meta));
+
+        assert_eq!(PlaythroughStatus::GameOver, state.playthrough_status);
+    }
+
+    #[test]
+    fn test_reaching_zero_profit_results_in_game_over() {
+        let mut initial_state = initialize_state();
+        initial_state.accrued_profit = BANKRUPTCY_THRESHOLD;
+        let played_card_meta = CardMeta {
+            title: String::from("A card"),
+            help_text: String::from("Nobody will read this... will they?"),
+            delta_profit: 0.0,
+            delta_co2: 0.0,
         };
 
         let state = game_state_reducer(initial_state, Action::PlayCard(played_card_meta));
@@ -212,7 +235,22 @@ mod tests {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),
             delta_profit: -5.0,
-            delta_co2: 110.0,
+            delta_co2: CATASTROPHIC_POLLUTION_THRESHOLD + 1.0,
+        };
+
+        let state = game_state_reducer(initial_state, Action::PlayCard(played_card_meta));
+
+        assert_eq!(PlaythroughStatus::GameOver, state.playthrough_status);
+    }
+
+    #[test]
+    fn test_reaching_upper_co2_threshold_results_in_game_over() {
+        let initial_state = initialize_state();
+        let played_card_meta = CardMeta {
+            title: String::from("A card"),
+            help_text: String::from("Nobody will read this... will they?"),
+            delta_profit: -5.0,
+            delta_co2: CATASTROPHIC_POLLUTION_THRESHOLD,
         };
 
         let state = game_state_reducer(initial_state, Action::PlayCard(played_card_meta));
