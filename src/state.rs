@@ -49,7 +49,7 @@ pub enum Action {
 
 const BANKRUPTCY_THRESHOLD: f64 = 0.0;
 const CATASTROPHIC_POLLUTION_THRESHOLD: f64 = 100.0;
-const ROUNDS_TO_BEAT_THE_GAME: i64 = 8;
+const ROUNDS_TO_BEAT_THE_GAME: usize = 8;
 
 #[must_use]
 pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
