@@ -49,7 +49,7 @@ pub enum Action {
 
 const BANKRUPTCY_THRESHOLD: f64 = 0.0;
 const CATASTROPHIC_POLLUTION_THRESHOLD: f64 = 100.0;
-const REQUIRED_ROUNDS_TO_BEAT_THE_GAME: usize = 8;
+const ROUNDS_TO_BEAT_THE_GAME: usize = 8;
 
 #[must_use]
 pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
@@ -80,7 +80,7 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
                 || accumulated_co2_emission >= CATASTROPHIC_POLLUTION_THRESHOLD
             {
                 PlaythroughStatus::GameOver
-            } else if played_cards.len() > REQUIRED_ROUNDS_TO_BEAT_THE_GAME {
+            } else if played_cards.len() > ROUNDS_TO_BEAT_THE_GAME {
                 PlaythroughStatus::Beaten
             } else {
                 state.playthrough_status
@@ -248,7 +248,7 @@ mod tests {
             delta_co2: 0.0,
         };
 
-        for _ in 0..REQUIRED_ROUNDS_TO_BEAT_THE_GAME + 1 {
+        for _ in 0..ROUNDS_TO_BEAT_THE_GAME + 1 {
             state = game_state_reducer(state, Action::PlayCard(played_card_meta.clone()));
         }
 
