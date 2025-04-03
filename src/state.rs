@@ -71,13 +71,14 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
             let accumulated_co2_emission = state.accumulated_co2_emission + card.delta_co2;
             let played_cards: Vec<CardMeta> =
                 state.played_cards.into_iter().chain(vec![card]).collect();
-            let mut playthrough_status = PlaythroughStatus::Ongoing;
 
-            if accrued_profit < 0.0 || accumulated_co2_emission >= 100.0 {
-                playthrough_status = PlaythroughStatus::GameOver;
+            let playthrough_status = if accrued_profit < 0.0 || accumulated_co2_emission >= 100.0 {
+                PlaythroughStatus::GameOver
             } else if played_cards.len() > 8 {
-                playthrough_status = PlaythroughStatus::Beaten;
-            }
+                PlaythroughStatus::Beaten
+            } else {
+                state.playthrough_status
+            };
 
             GameState {
                 accrued_profit,
