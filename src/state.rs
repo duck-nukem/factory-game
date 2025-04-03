@@ -43,6 +43,7 @@ pub enum Action {
     UpdateProfit(f64),
     SetProfitExactly(f64),
     UpdateCo2Emission(f64),
+    SetCo2Exactly(f64),
     PlayCard(CardMeta),
 }
 
@@ -63,6 +64,10 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
         },
         Action::UpdateCo2Emission(co2_emission_increase) => GameState {
             accumulated_co2_emission: state.accumulated_co2_emission + co2_emission_increase,
+            ..state
+        },
+        Action::SetCo2Exactly(co2_emission) => GameState {
+            accumulated_co2_emission: co2_emission,
             ..state
         },
         Action::PlayCard(card) => {
@@ -142,6 +147,14 @@ mod tests {
         assert_eq!(-1.0, state.accumulated_co2_emission);
     }
 
+    #[test]
+    fn test_can_set_co2_emission_to_any_value() {
+        let initial_state = initialize_state();
+
+        let state = game_state_reducer(initial_state, Action::SetCo2Exactly(1337.0));
+
+        assert_eq!(1337.0, state.accumulated_co2_emission);
+    }
     #[test]
     fn test_playing_cards_should_preserve_history() {
         let initial_state = initialize_state();
