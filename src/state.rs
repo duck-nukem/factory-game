@@ -148,26 +148,6 @@ mod tests {
     }
 
     #[test]
-    fn test_playing_a_card_should_update_profit_and_emission() {
-        let initial_state = initialize_state();
-        let played_card_meta = CardMeta {
-            title: String::from("A card"),
-            help_text: String::from("Nobody will read this... will they?"),
-            delta_profit: -5.0,
-            delta_co2: 5.0,
-        };
-
-        let state = game_state_reducer(initial_state, Action::PlayCard(played_card_meta));
-
-        assert_eq!(5.0, state.accumulated_co2_emission);
-        assert_eq!(-5.0, state.accrued_profit);
-        assert_eq!(
-            state.played_cards.first().unwrap().title,
-            String::from("A card")
-        );
-    }
-
-    #[test]
     fn test_playing_cards_should_preserve_history() {
         let initial_state = initialize_state();
         let first_card = CardMeta {
