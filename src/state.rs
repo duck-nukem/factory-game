@@ -76,7 +76,7 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
             let played_cards: Vec<CardMeta> =
                 state.played_cards.into_iter().chain(vec![card]).collect();
 
-            let playthrough_status = if accrued_profit <= BANKRUPTCY_THRESHOLD
+            let playthrough_status = if accrued_profit < BANKRUPTCY_THRESHOLD
                 || accumulated_co2_emission >= CATASTROPHIC_POLLUTION_THRESHOLD
             {
                 PlaythroughStatus::GameOver
@@ -130,7 +130,7 @@ mod tests {
     }
 
     #[test]
-    fn test_can_incur_co2_emission() {
+    fn test_can_increase_co2_emission() {
         let initial_state = initialize_state();
 
         let state = game_state_reducer(initial_state, Action::IncreaseCo2Emission(1.0));
@@ -193,7 +193,7 @@ mod tests {
     }
 
     #[test]
-    fn test_reaching_zero_profit_results_in_game_over() {
+    fn test_reaching_zero_profit_does_not_result_in_game_over() {
         let mut initial_state = initialize_state();
         initial_state.accrued_profit = BANKRUPTCY_THRESHOLD;
         let played_card_meta = CardMeta {
@@ -205,7 +205,7 @@ mod tests {
 
         let state = game_state_reducer(initial_state, Action::PlayCard(played_card_meta));
 
-        assert_eq!(PlaythroughStatus::GameOver, state.playthrough_status);
+        assert_eq!(PlaythroughStatus::Ongoing, state.playthrough_status);
     }
 
     #[test]
