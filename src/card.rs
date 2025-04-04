@@ -10,17 +10,31 @@ pub struct CardMeta {
     pub delta_co2: f64,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct CardCollection {
-    pub cards: Vec<CardMeta>,
-}
-
 pub const DEFAULT_CARD_META: &CardMeta = &CardMeta {
     title: String::new(),
     help_text: String::new(),
     delta_profit: 0.0,
     delta_co2: 0.0,
 };
+
+#[derive(Debug, Deserialize)]
+pub struct CardCollection {
+    pub cards: Vec<CardMeta>,
+}
+
+pub trait Deck {
+    fn draw_cards(&mut self, hand_size: usize) -> Vec<CardMeta>;
+}
+
+impl Deck for CardCollection {
+    fn draw_cards(&mut self, hand_size: usize) -> Vec<CardMeta> {
+        let mut cards = self.cards.clone().into_iter();
+        let hand: Vec<CardMeta> = cards.by_ref().take(hand_size).collect();
+        self.cards = cards.collect();
+
+        hand
+    }
+}
 
 impl Display for CardMeta {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -35,9 +49,43 @@ impl Display for CardMeta {
 const CARDS_SOURCE: &str = include_str!("../resources/cards.toml");
 
 #[must_use]
-pub fn load_cards() -> Vec<CardMeta> {
-    let collection: CardCollection =
-        toml::from_str(CARDS_SOURCE).unwrap_or(CardCollection { cards: vec![] });
+pub fn load_cards() -> CardCollection {
+    toml::from_str(CARDS_SOURCE).unwrap_or(CardCollection { cards: vec![] })
+}
 
-    collection.cards
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_can_draw_an_arbitrary_number_of_cards_from_the_deck() {
+        let mut deck = CardCollection {
+            cards: vec![CardMeta {
+                title: String::from("First"),
+                help_text: String::new(),
+                delta_profit: 0.0,
+                delta_co2: 0.0,
+            }],
+        };
+
+        let hand = deck.draw_cards(1);
+
+        assert_eq!(hand.first().expect("Unable to draw hand").title, "First")
+    }
+
+    #[test]
+    fn test_drawn_cards_are_gone_from_the_deck() {
+        let mut deck = CardCollection {
+            cards: vec![CardMeta {
+                title: String::from("First"),
+                help_text: String::new(),
+                delta_profit: 0.0,
+                delta_co2: 0.0,
+            }],
+        };
+
+        deck.draw_cards(1);
+
+        assert_eq!(0, deck.cards.len())
+    }
 }
