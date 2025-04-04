@@ -62,10 +62,18 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
             accrued_profit: amount,
             ..state
         },
-        Action::UpdateCo2Emission(co2_emission_increase) => GameState {
-            accumulated_co2_emission: state.accumulated_co2_emission + co2_emission_increase,
-            ..state
-        },
+        Action::UpdateCo2Emission(co2_emission) => {
+            let accumulated_co2_emission = state.accumulated_co2_emission + co2_emission;
+
+            if accumulated_co2_emission < 0.0 {
+                return state;
+            }
+
+            GameState {
+                accumulated_co2_emission,
+                ..state
+            }
+        }
         Action::SetCo2Exactly(co2_emission) => GameState {
             accumulated_co2_emission: co2_emission,
             ..state
@@ -142,9 +150,19 @@ mod tests {
     fn test_can_reduce_co2_emission() {
         let initial_state = initialize_state();
 
+        let intermittent_state = game_state_reducer(initial_state, Action::SetCo2Exactly(5.0));
+        let state = game_state_reducer(intermittent_state, Action::UpdateCo2Emission(-1.0));
+
+        assert_eq!(4.0, state.accumulated_co2_emission);
+    }
+
+    #[test]
+    fn test_co2_emission_cannot_be_negative() {
+        let initial_state = initialize_state();
+
         let state = game_state_reducer(initial_state, Action::UpdateCo2Emission(-1.0));
 
-        assert_eq!(-1.0, state.accumulated_co2_emission);
+        assert_eq!(0.0, state.accumulated_co2_emission);
     }
 
     #[test]
