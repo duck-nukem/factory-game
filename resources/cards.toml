@@ -1,0 +1,17 @@
+[[cards]]
+title = "Solar Panels"
+help_text = "Increases energy efficiency by 20%"
+delta_profit = -20
+delta_co2 = -5
+
+[[cards]]
+title = "Questionable worker"
+help_text = "Shovels you money, but at what price?"
+delta_profit = -5
+delta_co2 = 10
+
+[[cards]]
+title = "Surprise audit"
+help_text = "Minor nonconformances, hurray!"
+delta_profit = 0
+delta_co2 = -1

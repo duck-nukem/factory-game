@@ -1,7 +1,7 @@
 use std::io;
 
 use crate::{
-    card::{DEFAULT_CARD_META, generate_random_cards},
+    card::{DEFAULT_CARD_META, load_cards},
     state::{Action, GameState, game_state_reducer},
 };
 
@@ -18,7 +18,7 @@ pub fn ask(question: &str) -> String {
 pub fn event_loop(state: GameState) -> GameState {
     clear_screen();
     println!("{state}");
-    let cards = generate_random_cards();
+    let cards = load_cards();
 
     for (index, card) in cards.iter().enumerate() {
         println!("{index} -> {card}");

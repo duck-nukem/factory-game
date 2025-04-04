@@ -1,11 +1,18 @@
 use std::fmt::Display;
 
-#[derive(Clone, Debug)]
+use serde::Deserialize;
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct CardMeta {
     pub title: String,
     pub help_text: String,
     pub delta_profit: f64,
     pub delta_co2: f64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CardCollection {
+    pub cards: Vec<CardMeta>,
 }
 
 pub const DEFAULT_CARD_META: &CardMeta = &CardMeta {
@@ -25,20 +32,12 @@ impl Display for CardMeta {
     }
 }
 
+const CARDS_SOURCE: &str = include_str!("../resources/cards.toml");
+
 #[must_use]
-pub fn generate_random_cards() -> Vec<CardMeta> {
-    vec![
-        CardMeta {
-            title: String::from("Hire cheap workers"),
-            help_text: String::new(),
-            delta_profit: 25.0,
-            delta_co2: 50.0,
-        },
-        CardMeta {
-            title: String::from("Buy CO2 offset"),
-            help_text: String::new(),
-            delta_profit: -10.0,
-            delta_co2: -3.0,
-        },
-    ]
+pub fn load_cards() -> Vec<CardMeta> {
+    let collection: CardCollection =
+        toml::from_str(CARDS_SOURCE).unwrap_or(CardCollection { cards: vec![] });
+
+    collection.cards
 }
