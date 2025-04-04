@@ -80,9 +80,13 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
         },
         Action::PlayCard(card) => {
             let accrued_profit = state.accrued_profit + card.delta_profit;
-            let accumulated_co2_emission = state.accumulated_co2_emission + card.delta_co2;
+            let mut accumulated_co2_emission = state.accumulated_co2_emission + card.delta_co2;
             let played_cards: Vec<CardMeta> =
                 state.played_cards.into_iter().chain(vec![card]).collect();
+
+            if accumulated_co2_emission < 0.0 {
+                accumulated_co2_emission = 0.0;
+            }
 
             let playthrough_status = if accrued_profit < BANKRUPTCY_THRESHOLD
                 || accumulated_co2_emission >= CATASTROPHIC_POLLUTION_THRESHOLD
@@ -173,6 +177,22 @@ mod tests {
 
         assert_eq!(1337.0, state.accumulated_co2_emission);
     }
+
+    #[test]
+    fn test_playing_cards_should_not_result_in_negative_emissions() {
+        let initial_state = initialize_state();
+        let card = CardMeta {
+            title: String::from("Bribe authorities"),
+            help_text: String::from("A blind eye is turned for your increasing emissions..."),
+            delta_profit: 0.0,
+            delta_co2: -1.0,
+        };
+
+        let state = game_state_reducer(initial_state, Action::PlayCard(card));
+
+        assert_eq!(0.0, state.accumulated_co2_emission,);
+    }
+
     #[test]
     fn test_playing_cards_should_preserve_history() {
         let initial_state = initialize_state();
