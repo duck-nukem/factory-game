@@ -1,7 +1,7 @@
 use std::io;
 
 use crate::{
-    card::{DEFAULT_CARD_META, Deck, load_cards},
+    card::{Deck, load_cards},
     state::{Action, GameState, game_state_reducer},
 };
 
@@ -28,11 +28,17 @@ pub fn event_loop(state: GameState) -> GameState {
     let mut chosen_card = ask("Pick one");
     chosen_card.retain(|c| !c.is_ascii_whitespace());
     let card_index: usize = chosen_card.parse().unwrap_or_default();
-    let card_meta = hand.get(card_index).unwrap_or(DEFAULT_CARD_META).clone();
-    println!("Selected: {card_meta}");
-    let action = Action::PlayCard(card_meta);
+    let card_meta = hand.get(card_index);
 
-    game_state_reducer(state, action)
+    match card_meta {
+        Some(card) => {
+            println!("Selected: {card}");
+            let action = Action::PlayCard(card.clone());
+
+            game_state_reducer(state, action)
+        }
+        None => state,
+    }
 }
 
 fn clear_screen() {

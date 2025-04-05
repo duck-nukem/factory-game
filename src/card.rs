@@ -10,12 +10,16 @@ pub struct CardMeta {
     pub delta_co2: f64,
 }
 
-pub const DEFAULT_CARD_META: &CardMeta = &CardMeta {
-    title: String::new(),
-    help_text: String::new(),
-    delta_profit: 0.0,
-    delta_co2: 0.0,
-};
+impl Default for CardMeta {
+    fn default() -> Self {
+        Self {
+            title: String::from("Nothing"),
+            help_text: String::from("Literally nothing"),
+            delta_profit: 0.0,
+            delta_co2: 0.0,
+        }
+    }
+}
 
 #[derive(Debug, Deserialize)]
 pub struct CardCollection {
