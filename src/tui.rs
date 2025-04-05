@@ -33,7 +33,7 @@ pub fn event_loop(state: GameState) -> GameState {
     match card_meta {
         Some(card) => {
             println!("Selected: {card}");
-            let action = Action::PlayCard(card.clone());
+            let action = Action::PlayCard(card.to_owned());
 
             game_state_reducer(state, action)
         }

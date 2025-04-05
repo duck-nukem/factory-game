@@ -32,11 +32,9 @@ pub trait Deck {
 
 impl Deck for CardCollection {
     fn draw_cards(&mut self, hand_size: usize) -> Vec<CardMeta> {
-        let mut cards = self.cards.clone().into_iter();
-        let hand: Vec<CardMeta> = cards.by_ref().take(hand_size).collect();
-        self.cards = cards.collect();
-
-        hand
+        self.cards
+            .drain(0..hand_size.min(self.cards.len()))
+            .collect()
     }
 }
 
