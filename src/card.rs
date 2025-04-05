@@ -74,6 +74,22 @@ mod tests {
     }
 
     #[test]
+    fn test_drawing_more_cards_then_available_returns_all_remaining_cards() {
+        let mut deck = CardCollection {
+            cards: vec![CardMeta {
+                title: String::from("First"),
+                help_text: String::new(),
+                delta_profit: 0.0,
+                delta_co2: 0.0,
+            }],
+        };
+
+        let hand = deck.draw_cards(5);
+
+        assert_eq!(1, hand.len())
+    }
+
+    #[test]
     fn test_drawn_cards_are_gone_from_the_deck() {
         let mut deck = CardCollection {
             cards: vec![CardMeta {
