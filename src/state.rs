@@ -2,6 +2,7 @@ use std::fmt::Display;
 
 use crate::card::{CardCollection, CardMeta, Deck, load_cards};
 
+const STARTING_PROFIT_AMOUNT: f64 = 5.0;
 const BANKRUPTCY_THRESHOLD: f64 = 0.0;
 const CATASTROPHIC_POLLUTION_THRESHOLD: f64 = 20.0;
 const ROUNDS_TO_BEAT_THE_GAME: usize = 32;
@@ -16,6 +17,7 @@ pub enum PlaythroughStatus {
 #[derive(Debug)]
 pub struct GameState {
     pub accrued_profit: f64,
+    pub expenses: f64,
     pub accumulated_co2_emission: f64,
     pub played_cards: Vec<CardMeta>,
     pub hand: Vec<CardMeta>,
@@ -27,12 +29,13 @@ impl Display for GameState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{0}¢ & {1}/{4} tCO₂e @ Round {2}/{3}",
+            "{0:.2}¢/{5:.2}¢ | {1:.2}/{4:.2} tCO₂e | Round {2}/{3}",
             self.accrued_profit,
             self.accumulated_co2_emission,
             self.played_cards.len(),
             &ROUNDS_TO_BEAT_THE_GAME,
-            &CATASTROPHIC_POLLUTION_THRESHOLD
+            &CATASTROPHIC_POLLUTION_THRESHOLD,
+            self.expenses
         )
     }
 }
@@ -40,7 +43,8 @@ impl Display for GameState {
 impl Default for GameState {
     fn default() -> Self {
         Self {
-            accrued_profit: 0.0,
+            accrued_profit: STARTING_PROFIT_AMOUNT,
+            expenses: 0.0,
             accumulated_co2_emission: 0.0,
             played_cards: vec![],
             deck: load_cards(),
@@ -59,8 +63,13 @@ pub enum Action {
     DrawCards(usize),
 }
 
+fn exponential_curve(value_at_start: f64, rate: f64, time: f64) -> f64 {
+    // https://en.wikipedia.org/wiki/Exponential_growth
+    value_at_start * (1.0 + rate).powf(time)
+}
+
 #[must_use]
-pub fn game_state_reducer(mut state: GameState, action: Action) -> GameState {
+pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
     match action {
         Action::UpdateProfit(incoming_amount) => GameState {
             accrued_profit: state.accrued_profit + incoming_amount,
@@ -86,10 +95,10 @@ pub fn game_state_reducer(mut state: GameState, action: Action) -> GameState {
             accumulated_co2_emission: co2_emission,
             ..state
         },
-        Action::DrawCards(hand_size) => {
-            state.hand = state.deck.draw_cards(hand_size);
-            state
-        }
+        Action::DrawCards(hand_size) => GameState {
+            hand: state.deck.draw_cards(hand_size),
+            ..state
+        },
         Action::PlayCard(card) => {
             let accrued_profit = state.accrued_profit + card.delta_profit;
             let mut accumulated_co2_emission = state.accumulated_co2_emission + card.delta_co2;
@@ -101,22 +110,26 @@ pub fn game_state_reducer(mut state: GameState, action: Action) -> GameState {
             }
 
             let is_bankrupt = accrued_profit < BANKRUPTCY_THRESHOLD;
+            let has_failed_to_meet_profit_target = accrued_profit < state.expenses;
             let is_pollution_catastrophic =
                 accumulated_co2_emission > CATASTROPHIC_POLLUTION_THRESHOLD;
             let has_player_completed_all_required_levels =
                 played_cards.len() > ROUNDS_TO_BEAT_THE_GAME;
 
-            let playthrough_status = if is_bankrupt || is_pollution_catastrophic {
-                PlaythroughStatus::GameOver
-            } else if has_player_completed_all_required_levels {
-                PlaythroughStatus::Beaten
-            } else {
-                state.playthrough_status
-            };
+            let playthrough_status =
+                if is_bankrupt || has_failed_to_meet_profit_target || is_pollution_catastrophic {
+                    PlaythroughStatus::GameOver
+                } else if has_player_completed_all_required_levels {
+                    PlaythroughStatus::Beaten
+                } else {
+                    state.playthrough_status
+                };
+            let round = u32::try_from(played_cards.len()).map_or_else(|_| 32.0, f64::from);
 
             GameState {
                 accrued_profit,
                 accumulated_co2_emission,
+                expenses: exponential_curve(0.8, 0.2, round),
                 played_cards,
                 playthrough_status,
                 ..state
@@ -137,7 +150,7 @@ mod tests {
 
         let state = game_state_reducer(initial_state, Action::UpdateProfit(1.0));
 
-        assert_eq!(1.0, state.accrued_profit);
+        assert_eq!(&STARTING_PROFIT_AMOUNT + 1.0, state.accrued_profit);
     }
 
     #[test]
@@ -146,7 +159,7 @@ mod tests {
 
         let state = game_state_reducer(initial_state, Action::UpdateProfit(-1.0));
 
-        assert_eq!(-1.0, state.accrued_profit);
+        assert_eq!(&STARTING_PROFIT_AMOUNT - 1.0, state.accrued_profit);
     }
 
     #[test]
@@ -246,7 +259,7 @@ mod tests {
         let played_card_meta = CardMeta {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),
-            delta_profit: -1.0,
+            delta_profit: -1.0 - &initial_state.accrued_profit,
             delta_co2: 0.0,
         };
 
@@ -262,7 +275,7 @@ mod tests {
         let played_card_meta = CardMeta {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),
-            delta_profit: 0.0,
+            delta_profit: 0.0 - &initial_state.accrued_profit,
             delta_co2: 0.0,
         };
 
@@ -292,7 +305,7 @@ mod tests {
         let played_card_meta = CardMeta {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),
-            delta_profit: 1.0,
+            delta_profit: 100.0,
             delta_co2: 0.0,
         };
 
@@ -301,5 +314,28 @@ mod tests {
         }
 
         assert_eq!(PlaythroughStatus::Beaten, state.playthrough_status);
+    }
+
+    #[test]
+    fn test_failure_to_reach_profit_target_at_round_end_results_game_over() {
+        let state = GameState {
+            accrued_profit: 0.0,
+            expenses: 1.0,
+            accumulated_co2_emission: 0.0,
+            played_cards: vec![],
+            hand: vec![],
+            deck: CardCollection::default(),
+            playthrough_status: PlaythroughStatus::Ongoing,
+        };
+        let card = CardMeta {
+            title: String::new(),
+            help_text: String::new(),
+            delta_profit: 0.0,
+            delta_co2: 0.0,
+        };
+
+        let final_state = game_state_reducer(state, Action::PlayCard(card));
+
+        assert_eq!(PlaythroughStatus::GameOver, final_state.playthrough_status)
     }
 }

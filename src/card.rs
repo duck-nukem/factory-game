@@ -22,17 +22,17 @@ impl Default for CardMeta {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 pub struct CardCollection {
     pub cards: Vec<CardMeta>,
 }
 
 pub trait Deck {
-    fn draw_cards(&mut self, hand_size: usize) -> Vec<CardMeta>;
+    fn draw_cards(&self, hand_size: usize) -> Vec<CardMeta>;
 }
 
 impl Deck for CardCollection {
-    fn draw_cards(&mut self, hand_size: usize) -> Vec<CardMeta> {
+    fn draw_cards(&self, hand_size: usize) -> Vec<CardMeta> {
         let mut deck = self.cards.clone();
         deck.shuffle(&mut rand::rng());
         deck.clone().into_iter().take(hand_size).collect()
@@ -62,7 +62,7 @@ mod tests {
 
     #[test]
     fn test_can_draw_an_arbitrary_number_of_cards_from_the_deck() {
-        let mut deck = CardCollection {
+        let deck = CardCollection {
             cards: vec![CardMeta {
                 title: String::from("First"),
                 help_text: String::new(),
@@ -78,7 +78,7 @@ mod tests {
 
     #[test]
     fn test_drawing_more_cards_then_available_returns_all_remaining_cards() {
-        let mut deck = CardCollection {
+        let deck = CardCollection {
             cards: vec![CardMeta::default()],
         };
 
