@@ -17,8 +17,9 @@ fn main() {
         }
 
         if state.playthrough_status == PlaythroughStatus::Beaten {
-            println!("{state}\nYou win, congratulations!");
-            break;
+            println!(
+                "{state}\nYou win, congratulations! The game will continue, but you can exit any time now"
+            );
         }
     }
 }

@@ -2,6 +2,10 @@ use std::fmt::Display;
 
 use crate::card::{CardCollection, CardMeta, Deck, load_cards};
 
+const BANKRUPTCY_THRESHOLD: f64 = 0.0;
+const CATASTROPHIC_POLLUTION_THRESHOLD: f64 = 20.0;
+const ROUNDS_TO_BEAT_THE_GAME: usize = 32;
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum PlaythroughStatus {
     Ongoing,
@@ -23,10 +27,12 @@ impl Display for GameState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{0}¢ & {1} tCO₂e @ Round {2}",
+            "{0}¢ & {1}/{4} tCO₂e @ Round {2}/{3}",
             self.accrued_profit,
             self.accumulated_co2_emission,
-            self.played_cards.len()
+            self.played_cards.len(),
+            &ROUNDS_TO_BEAT_THE_GAME,
+            &CATASTROPHIC_POLLUTION_THRESHOLD
         )
     }
 }
@@ -52,10 +58,6 @@ pub enum Action {
     PlayCard(CardMeta),
     DrawCards(usize),
 }
-
-const BANKRUPTCY_THRESHOLD: f64 = 0.0;
-const CATASTROPHIC_POLLUTION_THRESHOLD: f64 = 100.0;
-const ROUNDS_TO_BEAT_THE_GAME: usize = 8;
 
 #[must_use]
 pub fn game_state_reducer(mut state: GameState, action: Action) -> GameState {

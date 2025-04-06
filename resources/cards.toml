@@ -7,13 +7,13 @@ delta_co2 = -5
 [[cards]]
 title = "Questionable worker"
 help_text = "Shovels you money, but at what price?"
-delta_profit = -5
+delta_profit = 5
 delta_co2 = 10
 
 [[cards]]
 title = "Surprise audit"
 help_text = "Minor nonconformances, hurray!"
-delta_profit = 0
+delta_profit = -1
 delta_co2 = -1
 
 [[cards]]
@@ -21,3 +21,9 @@ title = "Fix sealants"
 help_text = "Spend some money, save some money"
 delta_profit = 1
 delta_co2 = -1
+
+[[cards]]
+title = "Government regulation"
+help_text = "You gotta' do what you gotta' do"
+delta_profit = -10
+delta_co2 = -5
