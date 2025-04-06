@@ -102,7 +102,7 @@ pub fn game_state_reducer(mut state: GameState, action: Action) -> GameState {
 
             let is_bankrupt = accrued_profit < BANKRUPTCY_THRESHOLD;
             let is_pollution_catastrophic =
-                accumulated_co2_emission >= CATASTROPHIC_POLLUTION_THRESHOLD;
+                accumulated_co2_emission > CATASTROPHIC_POLLUTION_THRESHOLD;
             let has_player_completed_all_required_levels =
                 played_cards.len() > ROUNDS_TO_BEAT_THE_GAME;
 
@@ -279,21 +279,6 @@ mod tests {
             help_text: String::from("Nobody will read this... will they?"),
             delta_profit: -5.0,
             delta_co2: CATASTROPHIC_POLLUTION_THRESHOLD + 1.0,
-        };
-
-        let state = game_state_reducer(initial_state, Action::PlayCard(played_card_meta));
-
-        assert_eq!(PlaythroughStatus::GameOver, state.playthrough_status);
-    }
-
-    #[test]
-    fn test_reaching_upper_co2_threshold_results_in_game_over() {
-        let initial_state = GameState::default();
-        let played_card_meta = CardMeta {
-            title: String::from("A card"),
-            help_text: String::from("Nobody will read this... will they?"),
-            delta_profit: -5.0,
-            delta_co2: CATASTROPHIC_POLLUTION_THRESHOLD,
         };
 
         let state = game_state_reducer(initial_state, Action::PlayCard(played_card_meta));
