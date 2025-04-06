@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use rand::seq::SliceRandom;
 use serde::Deserialize;
 
 #[derive(Clone, Debug, Deserialize)]
@@ -32,9 +33,9 @@ pub trait Deck {
 
 impl Deck for CardCollection {
     fn draw_cards(&mut self, hand_size: usize) -> Vec<CardMeta> {
-        self.cards
-            .drain(0..hand_size.min(self.cards.len()))
-            .collect()
+        let mut deck = self.cards.clone();
+        deck.shuffle(&mut rand::rng());
+        deck.clone().into_iter().take(hand_size).collect()
     }
 }
 
@@ -84,16 +85,5 @@ mod tests {
         let hand = deck.draw_cards(5);
 
         assert_eq!(1, hand.len())
-    }
-
-    #[test]
-    fn test_drawn_cards_are_gone_from_the_deck() {
-        let mut deck = CardCollection {
-            cards: vec![CardMeta::default()],
-        };
-
-        deck.draw_cards(1);
-
-        assert_eq!(0, deck.cards.len())
     }
 }

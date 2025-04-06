@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::card::{CardCollection, CardMeta};
+use crate::card::{CardCollection, CardMeta, Deck, load_cards};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum PlaythroughStatus {
@@ -14,6 +14,7 @@ pub struct GameState {
     pub accrued_profit: f64,
     pub accumulated_co2_emission: f64,
     pub played_cards: Vec<CardMeta>,
+    pub hand: Vec<CardMeta>,
     pub deck: CardCollection,
     pub playthrough_status: PlaythroughStatus,
 }
@@ -36,20 +37,10 @@ impl Default for GameState {
             accrued_profit: 0.0,
             accumulated_co2_emission: 0.0,
             played_cards: vec![],
-            deck: CardCollection { cards: vec![] },
+            deck: load_cards(),
+            hand: vec![],
             playthrough_status: PlaythroughStatus::Ongoing,
         }
-    }
-}
-
-#[must_use]
-pub const fn initialize_state() -> GameState {
-    GameState {
-        accrued_profit: 0.0,
-        accumulated_co2_emission: 0.0,
-        played_cards: vec![],
-        deck: CardCollection { cards: vec![] },
-        playthrough_status: PlaythroughStatus::Ongoing,
     }
 }
 
@@ -59,6 +50,7 @@ pub enum Action {
     UpdateCo2Emission(f64),
     SetCo2Exactly(f64),
     PlayCard(CardMeta),
+    DrawCards(usize),
 }
 
 const BANKRUPTCY_THRESHOLD: f64 = 0.0;
@@ -66,7 +58,7 @@ const CATASTROPHIC_POLLUTION_THRESHOLD: f64 = 100.0;
 const ROUNDS_TO_BEAT_THE_GAME: usize = 8;
 
 #[must_use]
-pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
+pub fn game_state_reducer(mut state: GameState, action: Action) -> GameState {
     match action {
         Action::UpdateProfit(incoming_amount) => GameState {
             accrued_profit: state.accrued_profit + incoming_amount,
@@ -92,6 +84,10 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
             accumulated_co2_emission: co2_emission,
             ..state
         },
+        Action::DrawCards(hand_size) => {
+            state.hand = state.deck.draw_cards(hand_size);
+            state
+        }
         Action::PlayCard(card) => {
             let accrued_profit = state.accrued_profit + card.delta_profit;
             let mut accumulated_co2_emission = state.accumulated_co2_emission + card.delta_co2;

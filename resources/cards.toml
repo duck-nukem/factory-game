@@ -15,3 +15,9 @@ title = "Surprise audit"
 help_text = "Minor nonconformances, hurray!"
 delta_profit = 0
 delta_co2 = -1
+
+[[cards]]
+title = "Fix sealants"
+help_text = "Spend some money, save some money"
+delta_profit = 1
+delta_co2 = -1
