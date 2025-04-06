@@ -27,3 +27,63 @@ title = "Government regulation"
 help_text = "You gotta' do what you gotta' do"
 delta_profit = -10
 delta_co2 = -5
+
+[[cards]]
+title = "Greenwashing Campaign"
+help_text = "Marketing says you're saving the planet. You're not."
+delta_profit = 8
+delta_co2 = 2
+
+[[cards]]
+title = "Employee Carpooling"
+help_text = "Cut down emissions and... maybe morale."
+delta_profit = 2
+delta_co2 = -3
+
+[[cards]]
+title = "Factory Upgrade"
+help_text = "Cleaner machines, dirtier bank account."
+delta_profit = -8
+delta_co2 = -10
+
+[[cards]]
+title = "Skip Maintenance"
+help_text = "Ignore the rattling noise, profits await!"
+delta_profit = 6
+delta_co2 = 4
+
+[[cards]]
+title = "Tree Planting Initiative"
+help_text = "A forest of good intentions."
+delta_profit = -2
+delta_co2 = -6
+
+[[cards]]
+title = "Late-Night Production"
+help_text = "Round-the-clock output, and output, and output..."
+delta_profit = 10
+delta_co2 = 6
+
+[[cards]]
+title = "Sustainability Consultant"
+help_text = "They said you’re fine. You paid them to say that."
+delta_profit = -1
+delta_co2 = -2
+
+[[cards]]
+title = "Recycled Packaging"
+help_text = "Trash becomes slightly nicer trash."
+delta_profit = 1
+delta_co2 = -2
+
+[[cards]]
+title = "Environmental Protest"
+help_text = "Your gates are blocked. So are your profits."
+delta_profit = -5
+delta_co2 = -3
+
+[[cards]]
+title = "Internal Whistleblower"
+help_text = "Transparency is costly, but so is a lawsuit."
+delta_profit = -6
+delta_co2 = -4
