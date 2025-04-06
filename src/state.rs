@@ -88,11 +88,15 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
                 accumulated_co2_emission = 0.0;
             }
 
-            let playthrough_status = if accrued_profit < BANKRUPTCY_THRESHOLD
-                || accumulated_co2_emission >= CATASTROPHIC_POLLUTION_THRESHOLD
-            {
+            let is_bankrupt = accrued_profit < BANKRUPTCY_THRESHOLD;
+            let is_pollution_catastrophic =
+                accumulated_co2_emission >= CATASTROPHIC_POLLUTION_THRESHOLD;
+            let has_player_completed_all_required_levels =
+                played_cards.len() > ROUNDS_TO_BEAT_THE_GAME;
+
+            let playthrough_status = if is_bankrupt || is_pollution_catastrophic {
                 PlaythroughStatus::GameOver
-            } else if played_cards.len() > ROUNDS_TO_BEAT_THE_GAME {
+            } else if has_player_completed_all_required_levels {
                 PlaythroughStatus::Beaten
             } else {
                 state.playthrough_status
