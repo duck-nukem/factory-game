@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::card::CardMeta;
+use crate::card::{CardCollection, CardMeta};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum PlaythroughStatus {
@@ -14,6 +14,7 @@ pub struct GameState {
     pub accrued_profit: f64,
     pub accumulated_co2_emission: f64,
     pub played_cards: Vec<CardMeta>,
+    pub deck: CardCollection,
     pub playthrough_status: PlaythroughStatus,
 }
 
@@ -29,12 +30,25 @@ impl Display for GameState {
     }
 }
 
+impl Default for GameState {
+    fn default() -> Self {
+        Self {
+            accrued_profit: 0.0,
+            accumulated_co2_emission: 0.0,
+            played_cards: vec![],
+            deck: CardCollection { cards: vec![] },
+            playthrough_status: PlaythroughStatus::Ongoing,
+        }
+    }
+}
+
 #[must_use]
 pub const fn initialize_state() -> GameState {
     GameState {
         accrued_profit: 0.0,
         accumulated_co2_emission: 0.0,
         played_cards: vec![],
+        deck: CardCollection { cards: vec![] },
         playthrough_status: PlaythroughStatus::Ongoing,
     }
 }
@@ -107,6 +121,7 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
                 accumulated_co2_emission,
                 played_cards,
                 playthrough_status,
+                ..state
             }
         }
     }
@@ -120,7 +135,7 @@ mod tests {
 
     #[test]
     fn test_can_acquire_profit() {
-        let initial_state = initialize_state();
+        let initial_state = GameState::default();
 
         let state = game_state_reducer(initial_state, Action::UpdateProfit(1.0));
 
@@ -129,7 +144,7 @@ mod tests {
 
     #[test]
     fn test_can_acquire_negative_profit() {
-        let initial_state = initialize_state();
+        let initial_state = GameState::default();
 
         let state = game_state_reducer(initial_state, Action::UpdateProfit(-1.0));
 
@@ -138,7 +153,7 @@ mod tests {
 
     #[test]
     fn test_can_set_profit_to_any_value() {
-        let initial_state = initialize_state();
+        let initial_state = GameState::default();
 
         let state = game_state_reducer(initial_state, Action::SetProfitExactly(1337.0));
 
@@ -147,7 +162,7 @@ mod tests {
 
     #[test]
     fn test_can_increase_co2_emission() {
-        let initial_state = initialize_state();
+        let initial_state = GameState::default();
 
         let state = game_state_reducer(initial_state, Action::UpdateCo2Emission(1.0));
 
@@ -156,7 +171,7 @@ mod tests {
 
     #[test]
     fn test_can_reduce_co2_emission() {
-        let initial_state = initialize_state();
+        let initial_state = GameState::default();
 
         let intermittent_state = game_state_reducer(initial_state, Action::SetCo2Exactly(5.0));
         let state = game_state_reducer(intermittent_state, Action::UpdateCo2Emission(-1.0));
@@ -166,7 +181,7 @@ mod tests {
 
     #[test]
     fn test_co2_emission_cannot_be_negative() {
-        let initial_state = initialize_state();
+        let initial_state = GameState::default();
 
         let state = game_state_reducer(initial_state, Action::UpdateCo2Emission(-1.0));
 
@@ -175,7 +190,7 @@ mod tests {
 
     #[test]
     fn test_can_set_co2_emission_to_any_value() {
-        let initial_state = initialize_state();
+        let initial_state = GameState::default();
 
         let state = game_state_reducer(initial_state, Action::SetCo2Exactly(1337.0));
 
@@ -184,7 +199,7 @@ mod tests {
 
     #[test]
     fn test_playing_cards_should_not_result_in_negative_emissions() {
-        let initial_state = initialize_state();
+        let initial_state = GameState::default();
         let card = CardMeta {
             title: String::from("Bribe authorities"),
             help_text: String::from("A blind eye is turned for your increasing emissions..."),
@@ -199,7 +214,7 @@ mod tests {
 
     #[test]
     fn test_playing_cards_should_preserve_history() {
-        let initial_state = initialize_state();
+        let initial_state = GameState::default();
         let first_card = CardMeta {
             title: String::from("Bribe authorities"),
             help_text: String::from("A blind eye is turned for your increasing emissions..."),
@@ -228,7 +243,7 @@ mod tests {
 
     #[test]
     fn test_reaching_negative_profit_results_in_game_over() {
-        let mut initial_state = initialize_state();
+        let mut initial_state = GameState::default();
         initial_state.accrued_profit = BANKRUPTCY_THRESHOLD;
         let played_card_meta = CardMeta {
             title: String::from("A card"),
@@ -244,7 +259,7 @@ mod tests {
 
     #[test]
     fn test_reaching_zero_profit_does_not_result_in_game_over() {
-        let mut initial_state = initialize_state();
+        let mut initial_state = GameState::default();
         initial_state.accrued_profit = BANKRUPTCY_THRESHOLD;
         let played_card_meta = CardMeta {
             title: String::from("A card"),
@@ -260,7 +275,7 @@ mod tests {
 
     #[test]
     fn test_reaching_higher_co2_than_the_threshold_results_in_game_over() {
-        let initial_state = initialize_state();
+        let initial_state = GameState::default();
         let played_card_meta = CardMeta {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),
@@ -275,7 +290,7 @@ mod tests {
 
     #[test]
     fn test_reaching_upper_co2_threshold_results_in_game_over() {
-        let initial_state = initialize_state();
+        let initial_state = GameState::default();
         let played_card_meta = CardMeta {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),
@@ -290,7 +305,7 @@ mod tests {
 
     #[test]
     fn test_completing_the_required_rounds_results_in_winning() {
-        let mut state = initialize_state();
+        let mut state = GameState::default();
         let played_card_meta = CardMeta {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),

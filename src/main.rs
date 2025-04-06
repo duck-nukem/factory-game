@@ -1,4 +1,4 @@
-use state::{PlaythroughStatus, initialize_state};
+use state::{GameState, PlaythroughStatus};
 use tui::event_loop;
 
 pub mod card;
@@ -6,7 +6,7 @@ pub mod state;
 pub mod tui;
 
 fn main() {
-    let mut state = initialize_state();
+    let mut state = GameState::default();
 
     loop {
         state = event_loop(state);
