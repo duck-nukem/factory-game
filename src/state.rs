@@ -53,10 +53,10 @@ impl Default for GameState {
 }
 
 pub enum Action {
-    UpdateProfit(f64),
-    SetProfitExactly(f64),
-    UpdateCo2Emission(f64),
-    SetCo2Exactly(f64),
+    GainMoney(f64),
+    SetExactAmount(f64),
+    IncreaseCo2Emission(f64),
+    SetExactCo2Emission(f64),
     PlayCard(CardMeta),
     DrawCards(usize),
 }
@@ -69,21 +69,21 @@ fn exponential_curve(initial_value: f64, rate: f64, time: f64) -> f64 {
 #[must_use]
 pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
     match action {
-        Action::UpdateProfit(incoming_amount) => GameState {
+        Action::GainMoney(incoming_amount) => GameState {
             finance: Finance {
                 capital: state.finance.capital + incoming_amount,
                 ..state.finance
             },
             ..state
         },
-        Action::SetProfitExactly(amount) => GameState {
+        Action::SetExactAmount(amount) => GameState {
             finance: Finance {
                 capital: amount,
                 ..state.finance
             },
             ..state
         },
-        Action::UpdateCo2Emission(co2_emission) => {
+        Action::IncreaseCo2Emission(co2_emission) => {
             let accumulated_co2_emission = state.accumulated_co2_emission + co2_emission;
 
             if accumulated_co2_emission < 0.0 {
@@ -95,7 +95,7 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
                 ..state
             }
         }
-        Action::SetCo2Exactly(co2_emission) => GameState {
+        Action::SetExactCo2Emission(co2_emission) => GameState {
             accumulated_co2_emission: co2_emission,
             ..state
         },
@@ -157,7 +157,7 @@ mod tests {
     fn test_can_acquire_profit() {
         let initial_state = GameState::default();
 
-        let state = game_state_reducer(initial_state, Action::UpdateProfit(1.0));
+        let state = game_state_reducer(initial_state, Action::GainMoney(1.0));
 
         assert_eq!(&STARTING_PROFIT_AMOUNT + 1.0, state.finance.capital);
     }
@@ -166,7 +166,7 @@ mod tests {
     fn test_can_acquire_negative_profit() {
         let initial_state = GameState::default();
 
-        let state = game_state_reducer(initial_state, Action::UpdateProfit(-1.0));
+        let state = game_state_reducer(initial_state, Action::GainMoney(-1.0));
 
         assert_eq!(&STARTING_PROFIT_AMOUNT - 1.0, state.finance.capital);
     }
@@ -175,7 +175,7 @@ mod tests {
     fn test_can_set_profit_to_any_value() {
         let initial_state = GameState::default();
 
-        let state = game_state_reducer(initial_state, Action::SetProfitExactly(1337.0));
+        let state = game_state_reducer(initial_state, Action::SetExactAmount(1337.0));
 
         assert_eq!(1337.0, state.finance.capital);
     }
@@ -184,7 +184,7 @@ mod tests {
     fn test_can_increase_co2_emission() {
         let initial_state = GameState::default();
 
-        let state = game_state_reducer(initial_state, Action::UpdateCo2Emission(1.0));
+        let state = game_state_reducer(initial_state, Action::IncreaseCo2Emission(1.0));
 
         assert_eq!(1.0, state.accumulated_co2_emission);
     }
@@ -193,8 +193,9 @@ mod tests {
     fn test_can_reduce_co2_emission() {
         let initial_state = GameState::default();
 
-        let intermittent_state = game_state_reducer(initial_state, Action::SetCo2Exactly(5.0));
-        let state = game_state_reducer(intermittent_state, Action::UpdateCo2Emission(-1.0));
+        let intermittent_state =
+            game_state_reducer(initial_state, Action::SetExactCo2Emission(5.0));
+        let state = game_state_reducer(intermittent_state, Action::IncreaseCo2Emission(-1.0));
 
         assert_eq!(4.0, state.accumulated_co2_emission);
     }
@@ -203,7 +204,7 @@ mod tests {
     fn test_co2_emission_cannot_be_negative() {
         let initial_state = GameState::default();
 
-        let state = game_state_reducer(initial_state, Action::UpdateCo2Emission(-1.0));
+        let state = game_state_reducer(initial_state, Action::IncreaseCo2Emission(-1.0));
 
         assert_eq!(0.0, state.accumulated_co2_emission);
     }
@@ -212,7 +213,7 @@ mod tests {
     fn test_can_set_co2_emission_to_any_value() {
         let initial_state = GameState::default();
 
-        let state = game_state_reducer(initial_state, Action::SetCo2Exactly(1337.0));
+        let state = game_state_reducer(initial_state, Action::SetExactCo2Emission(1337.0));
 
         assert_eq!(1337.0, state.accumulated_co2_emission);
     }
