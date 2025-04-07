@@ -3,14 +3,14 @@ use std::fmt::Display;
 use rand::seq::SliceRandom;
 use serde::Deserialize;
 
-use crate::finance::Money;
+use crate::{emission::Co2Emission, finance::Money};
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct CardMeta {
     pub title: String,
     pub help_text: String,
     pub delta_profit: Money,
-    pub delta_co2: f64,
+    pub delta_co2: Co2Emission,
 }
 
 impl Default for CardMeta {
@@ -19,7 +19,7 @@ impl Default for CardMeta {
             title: String::from("Nothing"),
             help_text: String::from("Literally nothing"),
             delta_profit: Money(0.0),
-            delta_co2: 0.0,
+            delta_co2: Co2Emission(0.0),
         }
     }
 }
@@ -45,7 +45,7 @@ impl Display for CardMeta {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{0} - {1}, {2} CO₂",
+            "{0} - {1}, {2}",
             self.title, self.delta_profit, self.delta_co2
         )
     }
@@ -69,7 +69,7 @@ mod tests {
                 title: String::from("First"),
                 help_text: String::new(),
                 delta_profit: Money(0.0),
-                delta_co2: 0.0,
+                delta_co2: Co2Emission(0.0),
             }],
         };
 
