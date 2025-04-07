@@ -2,6 +2,7 @@ use state::{GameState, PlaythroughStatus};
 use tui::event_loop;
 
 pub mod card;
+mod finance;
 pub mod state;
 pub mod tui;
 

@@ -1,9 +1,10 @@
 use std::fmt::Display;
 
-use crate::card::{CardCollection, CardMeta, Deck, load_cards};
+use crate::{
+    card::{CardCollection, CardMeta, Deck, load_cards},
+    finance::{BANKRUPTCY_THRESHOLD, Finance},
+};
 
-const STARTING_PROFIT_AMOUNT: f64 = 5.0;
-const BANKRUPTCY_THRESHOLD: f64 = 0.0;
 const CATASTROPHIC_POLLUTION_THRESHOLD: f64 = 20.0;
 const ROUNDS_TO_BEAT_THE_GAME: usize = 32;
 
@@ -16,8 +17,7 @@ pub enum PlaythroughStatus {
 
 #[derive(Debug)]
 pub struct GameState {
-    pub accrued_profit: f64,
-    pub expenses: f64,
+    finance: Finance,
     pub accumulated_co2_emission: f64,
     pub played_cards: Vec<CardMeta>,
     pub hand: Vec<CardMeta>,
@@ -29,13 +29,12 @@ impl Display for GameState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{0:.2}¢/{5:.2}¢ | {1:.2}/{4:.2} tCO₂e | Round {2}/{3}",
-            self.accrued_profit,
+            "{0} | {1:.2}/{4:.2} tCO₂e | Round {2}/{3}",
+            self.finance,
             self.accumulated_co2_emission,
             self.played_cards.len(),
             &ROUNDS_TO_BEAT_THE_GAME,
             &CATASTROPHIC_POLLUTION_THRESHOLD,
-            self.expenses
         )
     }
 }
@@ -43,8 +42,7 @@ impl Display for GameState {
 impl Default for GameState {
     fn default() -> Self {
         Self {
-            accrued_profit: STARTING_PROFIT_AMOUNT,
-            expenses: 0.0,
+            finance: Finance::default(),
             accumulated_co2_emission: 0.0,
             played_cards: vec![],
             deck: load_cards(),
@@ -63,20 +61,26 @@ pub enum Action {
     DrawCards(usize),
 }
 
-fn exponential_curve(value_at_start: f64, rate: f64, time: f64) -> f64 {
+fn exponential_curve(initial_value: f64, rate: f64, time: f64) -> f64 {
     // https://en.wikipedia.org/wiki/Exponential_growth
-    value_at_start * (1.0 + rate).powf(time)
+    initial_value * (1.0 + rate).powf(time)
 }
 
 #[must_use]
 pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
     match action {
         Action::UpdateProfit(incoming_amount) => GameState {
-            accrued_profit: state.accrued_profit + incoming_amount,
+            finance: Finance {
+                capital: state.finance.capital + incoming_amount,
+                ..state.finance
+            },
             ..state
         },
         Action::SetProfitExactly(amount) => GameState {
-            accrued_profit: amount,
+            finance: Finance {
+                capital: amount,
+                ..state.finance
+            },
             ..state
         },
         Action::UpdateCo2Emission(co2_emission) => {
@@ -100,7 +104,7 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
             ..state
         },
         Action::PlayCard(card) => {
-            let accrued_profit = state.accrued_profit + card.delta_profit;
+            let accrued_profit = state.finance.capital + card.delta_profit;
             let mut accumulated_co2_emission = state.accumulated_co2_emission + card.delta_co2;
             let played_cards: Vec<CardMeta> =
                 state.played_cards.into_iter().chain(vec![card]).collect();
@@ -110,7 +114,7 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
             }
 
             let is_bankrupt = accrued_profit < BANKRUPTCY_THRESHOLD;
-            let has_failed_to_meet_profit_target = accrued_profit < state.expenses;
+            let has_failed_to_meet_profit_target = accrued_profit < state.finance.expenses;
             let is_pollution_catastrophic =
                 accumulated_co2_emission > CATASTROPHIC_POLLUTION_THRESHOLD;
             let has_player_completed_all_required_levels =
@@ -127,9 +131,11 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
             let round = u32::try_from(played_cards.len()).map_or_else(|_| 32.0, f64::from);
 
             GameState {
-                accrued_profit,
+                finance: Finance {
+                    capital: accrued_profit,
+                    expenses: exponential_curve(0.8, 0.2, round),
+                },
                 accumulated_co2_emission,
-                expenses: exponential_curve(0.8, 0.2, round),
                 played_cards,
                 playthrough_status,
                 ..state
@@ -140,7 +146,10 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
 
 #[cfg(test)]
 mod tests {
-    use crate::card::CardMeta;
+    use crate::{
+        card::CardMeta,
+        finance::{BANKRUPTCY_THRESHOLD, STARTING_PROFIT_AMOUNT},
+    };
 
     use super::*;
 
@@ -150,7 +159,7 @@ mod tests {
 
         let state = game_state_reducer(initial_state, Action::UpdateProfit(1.0));
 
-        assert_eq!(&STARTING_PROFIT_AMOUNT + 1.0, state.accrued_profit);
+        assert_eq!(&STARTING_PROFIT_AMOUNT + 1.0, state.finance.capital);
     }
 
     #[test]
@@ -159,7 +168,7 @@ mod tests {
 
         let state = game_state_reducer(initial_state, Action::UpdateProfit(-1.0));
 
-        assert_eq!(&STARTING_PROFIT_AMOUNT - 1.0, state.accrued_profit);
+        assert_eq!(&STARTING_PROFIT_AMOUNT - 1.0, state.finance.capital);
     }
 
     #[test]
@@ -168,7 +177,7 @@ mod tests {
 
         let state = game_state_reducer(initial_state, Action::SetProfitExactly(1337.0));
 
-        assert_eq!(1337.0, state.accrued_profit);
+        assert_eq!(1337.0, state.finance.capital);
     }
 
     #[test]
@@ -255,11 +264,11 @@ mod tests {
     #[test]
     fn test_reaching_negative_profit_results_in_game_over() {
         let mut initial_state = GameState::default();
-        initial_state.accrued_profit = BANKRUPTCY_THRESHOLD;
+        initial_state.finance.capital = BANKRUPTCY_THRESHOLD;
         let played_card_meta = CardMeta {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),
-            delta_profit: -1.0 - &initial_state.accrued_profit,
+            delta_profit: -1.0 - &initial_state.finance.capital,
             delta_co2: 0.0,
         };
 
@@ -271,11 +280,11 @@ mod tests {
     #[test]
     fn test_reaching_zero_profit_does_not_result_in_game_over() {
         let mut initial_state = GameState::default();
-        initial_state.accrued_profit = BANKRUPTCY_THRESHOLD;
+        initial_state.finance.capital = BANKRUPTCY_THRESHOLD;
         let played_card_meta = CardMeta {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),
-            delta_profit: 0.0 - &initial_state.accrued_profit,
+            delta_profit: 0.0 - &initial_state.finance.capital,
             delta_co2: 0.0,
         };
 
@@ -319,8 +328,10 @@ mod tests {
     #[test]
     fn test_failure_to_reach_profit_target_at_round_end_results_game_over() {
         let state = GameState {
-            accrued_profit: 0.0,
-            expenses: 1.0,
+            finance: Finance {
+                capital: 0.0,
+                expenses: 1.0,
+            },
             accumulated_co2_emission: 0.0,
             played_cards: vec![],
             hand: vec![],
