@@ -4,7 +4,7 @@ use serde::Deserialize;
 
 pub const CATASTROPHIC_POLLUTION_THRESHOLD: Co2Emission = Co2Emission(20.0);
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, PartialOrd)]
 pub struct Co2Emission(pub f64);
 
 impl Display for Co2Emission {

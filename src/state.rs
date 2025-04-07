@@ -80,7 +80,7 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
             ..state
         },
         Action::IncreaseCo2Emission(co2_emission) => {
-            let accumulated_co2_emission = state.accumulated_co2_emission.clone() + co2_emission;
+            let accumulated_co2_emission = state.accumulated_co2_emission + co2_emission;
 
             if accumulated_co2_emission < Co2Emission(0.0) {
                 return state;
@@ -100,9 +100,8 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
             ..state
         },
         Action::PlayCard(card) => {
-            let accrued_profit = state.finance.capital + card.delta_profit.clone();
-            let mut accumulated_co2_emission =
-                state.accumulated_co2_emission + card.delta_co2.clone();
+            let accrued_profit = state.finance.capital + card.delta_profit;
+            let mut accumulated_co2_emission = state.accumulated_co2_emission + card.delta_co2;
             let played_cards: Vec<CardMeta> =
                 state.played_cards.into_iter().chain(vec![card]).collect();
 
@@ -276,7 +275,7 @@ mod tests {
         let played_card_meta = CardMeta {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),
-            delta_profit: Money(-1.0) - initial_state.finance.capital.clone(),
+            delta_profit: Money(-1.0) - initial_state.finance.capital,
             delta_co2: Co2Emission(0.0),
         };
 
@@ -292,7 +291,7 @@ mod tests {
         let played_card_meta = CardMeta {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),
-            delta_profit: Money(0.0) - initial_state.finance.capital.clone(),
+            delta_profit: Money(0.0) - initial_state.finance.capital,
             delta_co2: Co2Emission(0.0),
         };
 

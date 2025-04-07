@@ -5,7 +5,7 @@ use std::{
 
 use serde::Deserialize;
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, PartialOrd)]
 pub struct Money(pub f64);
 
 impl Add<Self> for Money {
