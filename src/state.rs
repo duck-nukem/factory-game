@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::{
     card::{CardCollection, CardMeta, Deck, load_cards},
-    finance::{BANKRUPTCY_THRESHOLD, Finance},
+    finance::{BANKRUPTCY_THRESHOLD, Finance, Money},
     math::exponential_curve,
 };
 
@@ -54,8 +54,8 @@ impl Default for GameState {
 }
 
 pub enum Action {
-    GainMoney(f64),
-    SetExactAmount(f64),
+    GainMoney(Money),
+    SetExactAmount(Money),
     IncreaseCo2Emission(f64),
     SetExactCo2Emission(f64),
     PlayCard(CardMeta),
@@ -100,7 +100,7 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
             ..state
         },
         Action::PlayCard(card) => {
-            let accrued_profit = state.finance.capital + card.delta_profit;
+            let accrued_profit = state.finance.capital + card.delta_profit.clone();
             let mut accumulated_co2_emission = state.accumulated_co2_emission + card.delta_co2;
             let played_cards: Vec<CardMeta> =
                 state.played_cards.into_iter().chain(vec![card]).collect();
@@ -129,7 +129,7 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
             GameState {
                 finance: Finance {
                     capital: accrued_profit,
-                    expenses: exponential_curve(0.8, 0.2, round),
+                    expenses: Money(exponential_curve(0.8, 0.2, round)),
                 },
                 accumulated_co2_emission,
                 played_cards,
@@ -153,27 +153,27 @@ mod tests {
     fn test_can_acquire_profit() {
         let initial_state = GameState::default();
 
-        let state = game_state_reducer(initial_state, Action::GainMoney(1.0));
+        let state = game_state_reducer(initial_state, Action::GainMoney(Money(1.0)));
 
-        assert_eq!(&STARTING_PROFIT_AMOUNT + 1.0, state.finance.capital);
+        assert_eq!(STARTING_PROFIT_AMOUNT + Money(1.0), state.finance.capital);
     }
 
     #[test]
     fn test_can_acquire_negative_profit() {
         let initial_state = GameState::default();
 
-        let state = game_state_reducer(initial_state, Action::GainMoney(-1.0));
+        let state = game_state_reducer(initial_state, Action::GainMoney(Money(-1.0)));
 
-        assert_eq!(&STARTING_PROFIT_AMOUNT - 1.0, state.finance.capital);
+        assert_eq!(STARTING_PROFIT_AMOUNT - Money(1.0), state.finance.capital);
     }
 
     #[test]
     fn test_can_set_profit_to_any_value() {
         let initial_state = GameState::default();
 
-        let state = game_state_reducer(initial_state, Action::SetExactAmount(1337.0));
+        let state = game_state_reducer(initial_state, Action::SetExactAmount(Money(1337.0)));
 
-        assert_eq!(1337.0, state.finance.capital);
+        assert_eq!(Money(1337.0), state.finance.capital);
     }
 
     #[test]
@@ -220,7 +220,7 @@ mod tests {
         let card = CardMeta {
             title: String::from("Bribe authorities"),
             help_text: String::from("A blind eye is turned for your increasing emissions..."),
-            delta_profit: 0.0,
+            delta_profit: Money(0.0),
             delta_co2: -1.0,
         };
 
@@ -235,13 +235,13 @@ mod tests {
         let first_card = CardMeta {
             title: String::from("Bribe authorities"),
             help_text: String::from("A blind eye is turned for your increasing emissions..."),
-            delta_profit: -5.0,
+            delta_profit: Money(-5.0),
             delta_co2: 5.0,
         };
         let second_card = CardMeta {
             title: String::from("Win machinery"),
             help_text: String::from("Congrats on your new solar-battery powered washing machine!"),
-            delta_profit: 3.0,
+            delta_profit: Money(3.0),
             delta_co2: -2.0,
         };
 
@@ -265,7 +265,7 @@ mod tests {
         let played_card_meta = CardMeta {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),
-            delta_profit: -1.0 - &initial_state.finance.capital,
+            delta_profit: Money(-1.0) - initial_state.finance.capital.clone(),
             delta_co2: 0.0,
         };
 
@@ -281,7 +281,7 @@ mod tests {
         let played_card_meta = CardMeta {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),
-            delta_profit: 0.0 - &initial_state.finance.capital,
+            delta_profit: Money(0.0) - initial_state.finance.capital.clone(),
             delta_co2: 0.0,
         };
 
@@ -296,7 +296,7 @@ mod tests {
         let played_card_meta = CardMeta {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),
-            delta_profit: -5.0,
+            delta_profit: Money(-5.0),
             delta_co2: CATASTROPHIC_POLLUTION_THRESHOLD + 1.0,
         };
 
@@ -311,7 +311,7 @@ mod tests {
         let played_card_meta = CardMeta {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),
-            delta_profit: 100.0,
+            delta_profit: Money(100.0),
             delta_co2: 0.0,
         };
 
@@ -326,8 +326,8 @@ mod tests {
     fn test_failure_to_reach_profit_target_at_round_end_results_game_over() {
         let state = GameState {
             finance: Finance {
-                capital: 0.0,
-                expenses: 1.0,
+                capital: Money(0.0),
+                expenses: Money(1.0),
             },
             accumulated_co2_emission: 0.0,
             played_cards: vec![],
@@ -338,7 +338,7 @@ mod tests {
         let card = CardMeta {
             title: String::new(),
             help_text: String::new(),
-            delta_profit: 0.0,
+            delta_profit: Money(0.0),
             delta_co2: 0.0,
         };
 
