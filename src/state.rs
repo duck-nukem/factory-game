@@ -3,6 +3,7 @@ use std::fmt::Display;
 use crate::{
     card::{CardCollection, CardMeta, Deck, load_cards},
     finance::{BANKRUPTCY_THRESHOLD, Finance},
+    math::exponential_curve,
 };
 
 const CATASTROPHIC_POLLUTION_THRESHOLD: f64 = 20.0;
@@ -59,11 +60,6 @@ pub enum Action {
     SetExactCo2Emission(f64),
     PlayCard(CardMeta),
     DrawCards(usize),
-}
-
-fn exponential_curve(initial_value: f64, rate: f64, time: f64) -> f64 {
-    // https://en.wikipedia.org/wiki/Exponential_growth
-    initial_value * (1.0 + rate).powf(time)
 }
 
 #[must_use]

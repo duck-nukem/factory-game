@@ -3,6 +3,7 @@ use tui::event_loop;
 
 pub mod card;
 mod finance;
+mod math;
 pub mod state;
 pub mod tui;
 
