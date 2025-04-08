@@ -32,16 +32,13 @@ pub fn play_game(state: GameState) -> Option<GameState> {
     }
 
     let round = game_state_reducer(state, Action::DrawCards(3));
-
-    for (index, card) in round.hand.iter().enumerate() {
-        println!("{index} -> {card}");
-    }
+    println!("{0}", round.hand);
 
     let mut chosen_card = ask("Pick one");
     chosen_card.retain(|c| !c.is_ascii_whitespace());
     let card_index: usize = chosen_card.parse().unwrap_or_default();
 
-    match round.hand.get(card_index) {
+    match round.hand.pick_card(card_index) {
         Some(card) => {
             println!("Selected: {card}");
             let action = Action::PlayCard(card.to_owned());

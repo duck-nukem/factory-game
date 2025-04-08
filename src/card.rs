@@ -25,16 +25,40 @@ impl Default for CardMeta {
 }
 
 #[derive(Debug, Default, Deserialize)]
-pub struct CardCollection {
-    pub cards: Vec<CardMeta>,
+pub struct Deck {
+    cards: Vec<CardMeta>,
 }
 
-pub trait Deck {
-    fn draw_cards(&self, hand_size: usize) -> Vec<CardMeta>;
+#[derive(Debug, Default, Deserialize)]
+pub struct Hand {
+    cards: Vec<CardMeta>,
 }
 
-impl Deck for CardCollection {
-    fn draw_cards(&self, hand_size: usize) -> Vec<CardMeta> {
+impl Hand {
+    pub const fn new(cards: Vec<CardMeta>) -> Self {
+        Self { cards }
+    }
+
+    pub fn pick_card(&self, card_index: usize) -> Option<&CardMeta> {
+        self.cards.get(card_index)
+    }
+}
+
+impl Display for Hand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let cards_display = self
+            .cards
+            .iter()
+            .enumerate()
+            .map(|(index, card)| format!("{index} -> {card}\n"))
+            .reduce(|all_cards, card| all_cards + &card)
+            .unwrap_or_else(|| "No cards".to_string());
+        write!(f, "{cards_display}")
+    }
+}
+
+impl Deck {
+    pub fn draw_cards(&self, hand_size: usize) -> Vec<CardMeta> {
         let mut deck = self.cards.clone();
         deck.shuffle(&mut rand::rng());
         deck.clone().into_iter().take(hand_size).collect()
@@ -54,8 +78,8 @@ impl Display for CardMeta {
 const CARDS_SOURCE: &str = include_str!("../resources/cards.toml");
 
 #[must_use]
-pub fn load_cards() -> CardCollection {
-    toml::from_str(CARDS_SOURCE).unwrap_or(CardCollection { cards: vec![] })
+pub fn load_cards() -> Deck {
+    toml::from_str(CARDS_SOURCE).unwrap_or(Deck { cards: vec![] })
 }
 
 #[cfg(test)]
@@ -64,7 +88,7 @@ mod tests {
 
     #[test]
     fn test_can_draw_an_arbitrary_number_of_cards_from_the_deck() {
-        let deck = CardCollection {
+        let deck = Deck {
             cards: vec![CardMeta {
                 title: String::from("First"),
                 help_text: String::new(),
@@ -80,7 +104,7 @@ mod tests {
 
     #[test]
     fn test_drawing_more_cards_then_available_returns_all_remaining_cards() {
-        let deck = CardCollection {
+        let deck = Deck {
             cards: vec![CardMeta::default()],
         };
 

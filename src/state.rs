@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::{
-    card::{CardCollection, CardMeta, Deck, load_cards},
+    card::{CardMeta, Deck, Hand, load_cards},
     emission::{CATASTROPHIC_POLLUTION_THRESHOLD, Co2Emission},
     finance::{BANKRUPTCY_THRESHOLD, Finance, Money},
     math::exponential_curve,
@@ -21,8 +21,8 @@ pub struct GameState {
     finance: Finance,
     pub accumulated_co2_emission: Co2Emission,
     pub played_cards: Vec<CardMeta>,
-    pub hand: Vec<CardMeta>,
-    pub deck: CardCollection,
+    pub hand: Hand,
+    pub deck: Deck,
     pub playthrough_status: PlaythroughStatus,
 }
 
@@ -47,7 +47,7 @@ impl Default for GameState {
             accumulated_co2_emission: Co2Emission::default(),
             played_cards: vec![],
             deck: load_cards(),
-            hand: vec![],
+            hand: Hand::default(),
             playthrough_status: PlaythroughStatus::Ongoing,
         }
     }
@@ -96,7 +96,7 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
             ..state
         },
         Action::DrawCards(hand_size) => GameState {
-            hand: state.deck.draw_cards(hand_size),
+            hand: Hand::new(state.deck.draw_cards(hand_size)),
             ..state
         },
         Action::PlayCard(card) => {
@@ -143,7 +143,7 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
 #[cfg(test)]
 mod tests {
     use crate::{
-        card::CardMeta,
+        card::{CardMeta, Deck, Hand},
         finance::{BANKRUPTCY_THRESHOLD, STARTING_PROFIT_AMOUNT},
     };
 
@@ -341,8 +341,8 @@ mod tests {
             },
             accumulated_co2_emission: Co2Emission(0.0),
             played_cards: vec![],
-            hand: vec![],
-            deck: CardCollection::default(),
+            hand: Hand::default(),
+            deck: Deck::default(),
             playthrough_status: PlaythroughStatus::Ongoing,
         };
         let card = CardMeta {
