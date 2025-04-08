@@ -1,6 +1,6 @@
 use std::io;
 
-use crate::state::{Action, GameState, game_state_reducer};
+use crate::state::{Action, GameState, PlaythroughStatus, game_state_reducer};
 
 #[must_use]
 pub fn ask(question: &str) -> String {
@@ -11,10 +11,26 @@ pub fn ask(question: &str) -> String {
     input
 }
 
-#[must_use]
-pub fn event_loop(state: GameState) -> GameState {
+pub fn play_game(state: GameState) -> Option<GameState> {
     clear_screen();
-    println!("{state}");
+
+    match state.playthrough_status {
+        PlaythroughStatus::Ongoing => {
+            println!("{state}");
+        }
+        PlaythroughStatus::Beaten => {
+            println!("YOU WON! The game goes on!");
+            println!("{state}");
+        }
+        PlaythroughStatus::GameOver => {
+            println!(
+                "Game over, you made it to Round {0}",
+                state.played_cards.len()
+            );
+            return None;
+        }
+    }
+
     let round = game_state_reducer(state, Action::DrawCards(3));
 
     for (index, card) in round.hand.iter().enumerate() {
@@ -30,10 +46,9 @@ pub fn event_loop(state: GameState) -> GameState {
         Some(card) => {
             println!("Selected: {card}");
             let action = Action::PlayCard(card.to_owned());
-
-            game_state_reducer(round, action)
+            play_game(game_state_reducer(round, action))
         }
-        None => round,
+        None => Some(round),
     }
 }
 
