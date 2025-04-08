@@ -23,10 +23,7 @@ pub fn play_game(state: GameState) -> Option<GameState> {
             println!("{state}");
         }
         PlaythroughStatus::GameOver => {
-            println!(
-                "Game over, you made it to Round {0}",
-                state.played_cards.len()
-            );
+            println!("Game over, you made it to Round {0}", state.get_round());
             return None;
         }
     }

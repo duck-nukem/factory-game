@@ -19,11 +19,17 @@ pub enum PlaythroughStatus {
 #[derive(Debug)]
 pub struct GameState {
     finance: Finance,
-    pub accumulated_co2_emission: Co2Emission,
-    pub played_cards: Vec<Card>,
+    accumulated_co2_emission: Co2Emission,
+    deck: Deck,
+    played_cards: Vec<Card>,
     pub hand: Hand,
-    pub deck: Deck,
     pub playthrough_status: PlaythroughStatus,
+}
+
+impl GameState {
+    pub fn get_round(&self) -> i32 {
+        self.played_cards.len().try_into().unwrap_or_default()
+    }
 }
 
 impl Display for GameState {
