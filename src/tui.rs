@@ -40,9 +40,8 @@ pub fn play_game(state: GameState) -> Option<GameState> {
     let mut chosen_card = ask("Pick one");
     chosen_card.retain(|c| !c.is_ascii_whitespace());
     let card_index: usize = chosen_card.parse().unwrap_or_default();
-    let card_meta = round.hand.get(card_index);
 
-    match card_meta {
+    match round.hand.get(card_index) {
         Some(card) => {
             println!("Selected: {card}");
             let action = Action::PlayCard(card.to_owned());
