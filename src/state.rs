@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::{
-    card::{CardMeta, Deck, Hand, load_cards},
+    card::{Card, Deck, Hand, load_cards},
     emission::{CATASTROPHIC_POLLUTION_THRESHOLD, Co2Emission},
     finance::{BANKRUPTCY_THRESHOLD, Finance, Money},
     math::exponential_curve,
@@ -20,7 +20,7 @@ pub enum PlaythroughStatus {
 pub struct GameState {
     finance: Finance,
     pub accumulated_co2_emission: Co2Emission,
-    pub played_cards: Vec<CardMeta>,
+    pub played_cards: Vec<Card>,
     pub hand: Hand,
     pub deck: Deck,
     pub playthrough_status: PlaythroughStatus,
@@ -58,7 +58,7 @@ pub enum Action {
     SetExactAmount(Money),
     IncreaseCo2Emission(Co2Emission),
     SetExactCo2Emission(Co2Emission),
-    PlayCard(CardMeta),
+    PlayCard(Card),
     DrawCards(usize),
 }
 
@@ -102,7 +102,7 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
         Action::PlayCard(card) => {
             let accrued_profit = state.finance.capital + card.delta_profit;
             let mut accumulated_co2_emission = state.accumulated_co2_emission + card.delta_co2;
-            let played_cards: Vec<CardMeta> =
+            let played_cards: Vec<Card> =
                 state.played_cards.into_iter().chain(vec![card]).collect();
 
             if accumulated_co2_emission < Co2Emission(0.0) {
@@ -143,7 +143,7 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
 #[cfg(test)]
 mod tests {
     use crate::{
-        card::{CardMeta, Deck, Hand},
+        card::{Card, Deck, Hand},
         finance::{BANKRUPTCY_THRESHOLD, STARTING_PROFIT_AMOUNT},
     };
 
@@ -227,7 +227,7 @@ mod tests {
     #[test]
     fn test_playing_cards_should_not_result_in_negative_emissions() {
         let initial_state = GameState::default();
-        let card = CardMeta {
+        let card = Card {
             title: String::from("Bribe authorities"),
             help_text: String::from("A blind eye is turned for your increasing emissions..."),
             delta_profit: Money(0.0),
@@ -242,13 +242,13 @@ mod tests {
     #[test]
     fn test_playing_cards_should_preserve_history() {
         let initial_state = GameState::default();
-        let first_card = CardMeta {
+        let first_card = Card {
             title: String::from("Bribe authorities"),
             help_text: String::from("A blind eye is turned for your increasing emissions..."),
             delta_profit: Money(-5.0),
             delta_co2: Co2Emission(5.0),
         };
-        let second_card = CardMeta {
+        let second_card = Card {
             title: String::from("Win machinery"),
             help_text: String::from("Congrats on your new solar-battery powered washing machine!"),
             delta_profit: Money(3.0),
@@ -272,7 +272,7 @@ mod tests {
     fn test_reaching_negative_profit_results_in_game_over() {
         let mut initial_state = GameState::default();
         initial_state.finance.capital = BANKRUPTCY_THRESHOLD;
-        let played_card_meta = CardMeta {
+        let played_card_meta = Card {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),
             delta_profit: Money(-1.0) - initial_state.finance.capital,
@@ -288,7 +288,7 @@ mod tests {
     fn test_reaching_zero_profit_does_not_result_in_game_over() {
         let mut initial_state = GameState::default();
         initial_state.finance.capital = BANKRUPTCY_THRESHOLD;
-        let played_card_meta = CardMeta {
+        let played_card_meta = Card {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),
             delta_profit: Money(0.0) - initial_state.finance.capital,
@@ -303,7 +303,7 @@ mod tests {
     #[test]
     fn test_reaching_higher_co2_than_the_threshold_results_in_game_over() {
         let initial_state = GameState::default();
-        let played_card_meta = CardMeta {
+        let played_card_meta = Card {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),
             delta_profit: Money(-5.0),
@@ -318,7 +318,7 @@ mod tests {
     #[test]
     fn test_completing_the_required_rounds_results_in_winning() {
         let mut state = GameState::default();
-        let played_card_meta = CardMeta {
+        let played_card_meta = Card {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),
             delta_profit: Money(100.0),
@@ -345,7 +345,7 @@ mod tests {
             deck: Deck::default(),
             playthrough_status: PlaythroughStatus::Ongoing,
         };
-        let card = CardMeta {
+        let card = Card {
             title: String::new(),
             help_text: String::new(),
             delta_profit: Money(0.0),

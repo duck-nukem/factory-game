@@ -6,14 +6,14 @@ use serde::Deserialize;
 use crate::{emission::Co2Emission, finance::Money};
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct CardMeta {
+pub struct Card {
     pub title: String,
     pub help_text: String,
     pub delta_profit: Money,
     pub delta_co2: Co2Emission,
 }
 
-impl Default for CardMeta {
+impl Default for Card {
     fn default() -> Self {
         Self {
             title: String::from("Nothing"),
@@ -26,20 +26,20 @@ impl Default for CardMeta {
 
 #[derive(Debug, Default, Deserialize)]
 pub struct Deck {
-    cards: Vec<CardMeta>,
+    cards: Vec<Card>,
 }
 
 #[derive(Debug, Default, Deserialize)]
 pub struct Hand {
-    cards: Vec<CardMeta>,
+    cards: Vec<Card>,
 }
 
 impl Hand {
-    pub const fn new(cards: Vec<CardMeta>) -> Self {
+    pub const fn new(cards: Vec<Card>) -> Self {
         Self { cards }
     }
 
-    pub fn pick_card(&self, card_index: usize) -> Option<&CardMeta> {
+    pub fn pick_card(&self, card_index: usize) -> Option<&Card> {
         self.cards.get(card_index)
     }
 }
@@ -58,14 +58,14 @@ impl Display for Hand {
 }
 
 impl Deck {
-    pub fn draw_cards(&self, hand_size: usize) -> Vec<CardMeta> {
+    pub fn draw_cards(&self, hand_size: usize) -> Vec<Card> {
         let mut deck = self.cards.clone();
         deck.shuffle(&mut rand::rng());
         deck.clone().into_iter().take(hand_size).collect()
     }
 }
 
-impl Display for CardMeta {
+impl Display for Card {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -89,7 +89,7 @@ mod tests {
     #[test]
     fn test_can_draw_an_arbitrary_number_of_cards_from_the_deck() {
         let deck = Deck {
-            cards: vec![CardMeta {
+            cards: vec![Card {
                 title: String::from("First"),
                 help_text: String::new(),
                 delta_profit: Money(0.0),
@@ -105,7 +105,7 @@ mod tests {
     #[test]
     fn test_drawing_more_cards_then_available_returns_all_remaining_cards() {
         let deck = Deck {
-            cards: vec![CardMeta::default()],
+            cards: vec![Card::default()],
         };
 
         let hand = deck.draw_cards(5);
