@@ -29,7 +29,7 @@ pub struct Deck {
     cards: Vec<Card>,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize)]
 pub struct Hand {
     cards: Vec<Card>,
 }

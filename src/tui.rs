@@ -9,11 +9,13 @@ pub fn ask(question: &str) -> String {
     io::stdin().read_line(&mut input).unwrap_or(0);
 
     input
+        .chars()
+        .filter(|c| !c.is_ascii_whitespace())
+        .collect::<String>()
 }
 
 pub fn play_game(state: GameState) -> Option<GameState> {
-    clear_screen();
-
+    println!("============");
     match state.playthrough_status {
         PlaythroughStatus::Ongoing => {
             println!("{state}");
@@ -31,23 +33,17 @@ pub fn play_game(state: GameState) -> Option<GameState> {
     let round = game_state_reducer(state, Action::DrawCards(3));
     println!("{0}", round.hand);
 
-    let chosen_card: usize = ask("Pick one")
-        .chars()
-        .filter(|c| !c.is_ascii_whitespace())
-        .collect::<String>()
+    let chosen_card = ask("Pick one")
         .parse()
-        .unwrap_or_default();
-
-    match round.hand.pick_card(chosen_card) {
-        Some(card) => {
-            println!("Selected: {card}");
-            let action = Action::PlayCard(card.to_owned());
-            play_game(game_state_reducer(round, action))
-        }
-        None => Some(round),
-    }
-}
-
-fn clear_screen() {
-    print!("{}[2J", 27 as char);
+        .ok()
+        .and_then(|i| round.hand.pick_card(i));
+    let next_round = if let Some(chosen_card) = chosen_card {
+        println!("Selected: {chosen_card}");
+        let action = Action::PlayCard(chosen_card.to_owned());
+        game_state_reducer(round, action)
+    } else {
+        println!("Invalid selection, try again");
+        round
+    };
+    play_game(next_round)
 }
