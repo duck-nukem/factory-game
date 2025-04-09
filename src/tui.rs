@@ -31,11 +31,14 @@ pub fn play_game(state: GameState) -> Option<GameState> {
     let round = game_state_reducer(state, Action::DrawCards(3));
     println!("{0}", round.hand);
 
-    let mut chosen_card = ask("Pick one");
-    chosen_card.retain(|c| !c.is_ascii_whitespace());
-    let card_index: usize = chosen_card.parse().unwrap_or_default();
+    let chosen_card: usize = ask("Pick one")
+        .chars()
+        .filter(|c| !c.is_ascii_whitespace())
+        .collect::<String>()
+        .parse()
+        .unwrap_or_default();
 
-    match round.hand.pick_card(card_index) {
+    match round.hand.pick_card(chosen_card) {
         Some(card) => {
             println!("Selected: {card}");
             let action = Action::PlayCard(card.to_owned());
