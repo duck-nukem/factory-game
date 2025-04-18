@@ -195,9 +195,9 @@ mod tests {
     #[test]
     fn test_can_reduce_co2_emission() {
         let initial_state = GameState::default();
-
         let intermittent_state =
             game_state_reducer(initial_state, Action::SetExactCo2Emission(Co2Emission(5.0)));
+
         let state = game_state_reducer(
             intermittent_state,
             Action::IncreaseCo2Emission(Co2Emission(-1.0)),
