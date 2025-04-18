@@ -1,12 +1,13 @@
 use state::GameState;
 use tui::play_game;
 
-pub mod card;
+mod card;
 mod emission;
 mod finance;
+mod gui;
 mod math;
-pub mod state;
-pub mod tui;
+mod state;
+mod tui;
 
 fn main() {
     play_game(GameState::default());
