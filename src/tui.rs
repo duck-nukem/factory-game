@@ -2,8 +2,7 @@ use std::io;
 
 use crate::state::{Action, GameState, PlaythroughStatus, game_state_reducer};
 
-#[must_use]
-pub fn ask(question: &str) -> String {
+fn ask(question: &str) -> String {
     let mut input = String::new();
     println!("{question} ");
     io::stdin().read_line(&mut input).unwrap_or(0);
