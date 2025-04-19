@@ -138,7 +138,7 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
             GameState {
                 finance: Finance {
                     capital: accrued_profit,
-                    expenses: Money(exponential_curve(0.8, 0.2, round)),
+                    expenses: Money(exponential_curve(1.0, 0.15, round)),
                 },
                 accumulated_co2_emission,
                 played_cards,
