@@ -33,7 +33,7 @@ impl Display for Money {
 pub const STARTING_PROFIT_AMOUNT: Money = Money(5.0);
 pub const BANKRUPTCY_THRESHOLD: Money = Money(0.0);
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Finance {
     pub capital: Money,
     pub expenses: Money,

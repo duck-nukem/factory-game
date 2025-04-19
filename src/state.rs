@@ -9,14 +9,14 @@ use crate::{
 
 const ROUNDS_TO_BEAT_THE_GAME: usize = 32;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PlaythroughStatus {
     Ongoing,
     GameOver,
     Beaten,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct GameState {
     finance: Finance,
     accumulated_co2_emission: Co2Emission,
@@ -59,6 +59,8 @@ impl Default for GameState {
     }
 }
 
+#[derive(Debug)]
+#[allow(dead_code)]
 pub enum Action {
     GainMoney(Money),
     SetExactAmount(Money),
@@ -66,6 +68,7 @@ pub enum Action {
     SetExactCo2Emission(Co2Emission),
     PlayCard(Card),
     DrawCards(usize),
+    Reset,
 }
 
 #[must_use]
@@ -143,6 +146,7 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
                 ..state
             }
         }
+        Action::Reset => GameState::default(),
     }
 }
 

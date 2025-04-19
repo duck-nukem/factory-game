@@ -24,7 +24,7 @@ impl Default for Card {
     }
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize)]
 pub struct Deck {
     cards: Vec<Card>,
 }
