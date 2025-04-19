@@ -26,7 +26,7 @@ impl Sub<Self> for Money {
 
 impl Display for Money {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{0:.2}¢", self.0)
+        write!(f, "{0:+.2}¢", self.0)
     }
 }
 
