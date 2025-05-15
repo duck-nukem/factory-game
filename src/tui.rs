@@ -13,7 +13,7 @@ fn ask(question: &str) -> String {
         .collect::<String>()
 }
 
-pub fn play_game(state: GameState) -> Option<GameState> {
+pub fn play_game<'a>(state: &'a mut GameState<'a>) -> Option<&'a GameState<'a>> {
     println!("============");
     match state.playthrough_status {
         PlaythroughStatus::Ongoing => {
@@ -38,8 +38,8 @@ pub fn play_game(state: GameState) -> Option<GameState> {
         .and_then(|i| round.hand.pick_card(i));
     let next_round = if let Some(chosen_card) = chosen_card {
         println!("Selected: {chosen_card}");
-        let action = Action::PlayCard(chosen_card.to_owned());
-        game_state_reducer(round, action)
+        let action = Action::PlayCard(chosen_card);
+        round
     } else {
         println!("Invalid selection, try again");
         round

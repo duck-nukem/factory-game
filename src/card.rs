@@ -58,10 +58,9 @@ impl Display for Hand {
 }
 
 impl Deck {
-    pub fn draw_cards(&self, hand_size: usize) -> Vec<Card> {
-        let mut deck = self.cards.clone();
-        deck.shuffle(&mut rand::rng());
-        deck.clone().into_iter().take(hand_size).collect()
+    pub fn draw_cards(&mut self, hand_size: usize) -> Vec<Card> {
+        self.cards.shuffle(&mut rand::rng());
+        self.cards.clone().into_iter().take(hand_size).collect()
     }
 }
 
@@ -88,7 +87,7 @@ mod tests {
 
     #[test]
     fn test_can_draw_an_arbitrary_number_of_cards_from_the_deck() {
-        let deck = Deck {
+        let mut deck = Deck {
             cards: vec![Card {
                 title: String::from("First"),
                 help_text: String::new(),
@@ -104,7 +103,7 @@ mod tests {
 
     #[test]
     fn test_drawing_more_cards_then_available_returns_all_remaining_cards() {
-        let deck = Deck {
+        let mut deck = Deck {
             cards: vec![Card::default()],
         };
 

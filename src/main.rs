@@ -4,11 +4,10 @@ use tui::play_game;
 mod card;
 mod emission;
 mod finance;
-mod gui;
 mod math;
 mod state;
 mod tui;
 
 fn main() {
-    play_game(GameState::default());
+    play_game(&mut GameState::default());
 }

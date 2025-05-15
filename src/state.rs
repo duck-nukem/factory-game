@@ -1,13 +1,14 @@
 use std::fmt::Display;
-
+use std::sync::{LazyLock, Mutex};
 use crate::{
-    card::{Card, Deck, Hand, load_cards},
-    emission::{CATASTROPHIC_POLLUTION_THRESHOLD, Co2Emission},
-    finance::{BANKRUPTCY_THRESHOLD, Finance, Money},
+    card::{load_cards, Card, Deck, Hand},
+    emission::{Co2Emission, CATASTROPHIC_POLLUTION_THRESHOLD},
+    finance::{Finance, Money, BANKRUPTCY_THRESHOLD},
     math::exponential_curve,
 };
 
 const ROUNDS_TO_BEAT_THE_GAME: usize = 32;
+static NEW_GAME: LazyLock<Mutex<GameState<'static>>> = LazyLock::new(|| Mutex::new(GameState::default()));
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PlaythroughStatus {
@@ -17,22 +18,22 @@ pub enum PlaythroughStatus {
 }
 
 #[derive(Clone, Debug)]
-pub struct GameState {
+pub struct GameState<'a> {
     finance: Finance,
     accumulated_co2_emission: Co2Emission,
     deck: Deck,
-    played_cards: Vec<Card>,
+    played_cards: Vec<&'a Card>,
     pub hand: Hand,
     pub playthrough_status: PlaythroughStatus,
 }
 
-impl GameState {
+impl<'a> GameState<'a> {
     pub fn get_round(&self) -> i32 {
         self.played_cards.len().try_into().unwrap_or_default()
     }
 }
 
-impl Display for GameState {
+impl<'a> Display for GameState<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -46,7 +47,7 @@ impl Display for GameState {
     }
 }
 
-impl Default for GameState {
+impl<'a> Default for GameState<'a> {
     fn default() -> Self {
         Self {
             finance: Finance::default(),
@@ -61,58 +62,47 @@ impl Default for GameState {
 
 #[derive(Debug)]
 #[allow(dead_code)]
-pub enum Action {
+pub enum Action<'a> {
     GainMoney(Money),
     SetExactAmount(Money),
     IncreaseCo2Emission(Co2Emission),
     SetExactCo2Emission(Co2Emission),
-    PlayCard(Card),
+    PlayCard(&'a Card),
     DrawCards(usize),
-    Reset,
 }
 
 #[must_use]
-pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
+pub fn game_state_reducer<'a>(state: &'a mut GameState<'a>, action: Action<'a>) -> &'a mut GameState<'a> {
     match action {
-        Action::GainMoney(incoming_amount) => GameState {
-            finance: Finance {
-                capital: state.finance.capital + incoming_amount,
-                ..state.finance
-            },
-            ..state
-        },
-        Action::SetExactAmount(amount) => GameState {
-            finance: Finance {
-                capital: amount,
-                ..state.finance
-            },
-            ..state
-        },
+        Action::GainMoney(incoming_amount) => {
+            state.finance.capital = state.finance.capital + incoming_amount;
+            state
+        }
+        Action::SetExactAmount(amount) => {
+            state.finance.capital = amount;
+            state
+        }
         Action::IncreaseCo2Emission(co2_emission) => {
             let accumulated_co2_emission = state.accumulated_co2_emission + co2_emission;
 
             if accumulated_co2_emission < Co2Emission(0.0) {
                 return state;
             }
-
-            GameState {
-                accumulated_co2_emission,
-                ..state
-            }
+            
+            state.accumulated_co2_emission = accumulated_co2_emission;
+            state
         }
-        Action::SetExactCo2Emission(co2_emission) => GameState {
-            accumulated_co2_emission: co2_emission,
-            ..state
+        Action::SetExactCo2Emission(co2_emission) => {
+            state.accumulated_co2_emission = co2_emission;
+            state
         },
-        Action::DrawCards(hand_size) => GameState {
-            hand: Hand::new(state.deck.draw_cards(hand_size)),
-            ..state
+        Action::DrawCards(hand_size) => {
+            state.hand = Hand::new(state.deck.draw_cards(hand_size));
+            state
         },
         Action::PlayCard(card) => {
             let accrued_profit = state.finance.capital + card.delta_profit;
             let mut accumulated_co2_emission = state.accumulated_co2_emission + card.delta_co2;
-            let played_cards: Vec<Card> =
-                state.played_cards.into_iter().chain(vec![card]).collect();
 
             if accumulated_co2_emission < Co2Emission(0.0) {
                 accumulated_co2_emission = Co2Emission::default();
@@ -123,7 +113,7 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
             let is_pollution_catastrophic =
                 accumulated_co2_emission > CATASTROPHIC_POLLUTION_THRESHOLD;
             let has_player_completed_all_required_levels =
-                played_cards.len() > ROUNDS_TO_BEAT_THE_GAME;
+                state.played_cards.len() > ROUNDS_TO_BEAT_THE_GAME;
 
             let playthrough_status =
                 if is_bankrupt || has_failed_to_meet_profit_target || is_pollution_catastrophic {
@@ -131,22 +121,18 @@ pub fn game_state_reducer(state: GameState, action: Action) -> GameState {
                 } else if has_player_completed_all_required_levels {
                     PlaythroughStatus::Beaten
                 } else {
-                    state.playthrough_status
+                    PlaythroughStatus::Ongoing
                 };
-            let round = u32::try_from(played_cards.len()).map_or_else(|_| 32.0, f64::from);
-
-            GameState {
-                finance: Finance {
-                    capital: accrued_profit,
-                    expenses: Money(exponential_curve(1.0, 0.15, round)),
-                },
-                accumulated_co2_emission,
-                played_cards,
-                playthrough_status,
-                ..state
-            }
-        }
-        Action::Reset => GameState::default(),
+            let round = u32::try_from(state.played_cards.len()).map_or_else(|_| 32.0, f64::from);
+            
+            state.finance.capital = accrued_profit;
+            state.finance.expenses = Money(exponential_curve(1.0, 0.15, round));
+            state.accumulated_co2_emission = accumulated_co2_emission;
+            state.playthrough_status = playthrough_status;
+            state.played_cards.append(&mut vec![card]);
+            
+            state
+        },
     }
 }
 
@@ -161,46 +147,46 @@ mod tests {
 
     #[test]
     fn test_can_acquire_profit() {
-        let initial_state = GameState::default();
+        let mut initial_state = GameState::default();
 
-        let state = game_state_reducer(initial_state, Action::GainMoney(Money(1.0)));
+        let state = game_state_reducer(&mut initial_state, Action::GainMoney(Money(1.0)));
 
         assert_eq!(STARTING_PROFIT_AMOUNT + Money(1.0), state.finance.capital);
     }
 
     #[test]
     fn test_can_acquire_negative_profit() {
-        let initial_state = GameState::default();
+        let mut initial_state = GameState::default();
 
-        let state = game_state_reducer(initial_state, Action::GainMoney(Money(-1.0)));
+        let state = game_state_reducer(&mut initial_state, Action::GainMoney(Money(-1.0)));
 
         assert_eq!(STARTING_PROFIT_AMOUNT - Money(1.0), state.finance.capital);
     }
 
     #[test]
     fn test_can_set_profit_to_any_value() {
-        let initial_state = GameState::default();
+        let mut initial_state = GameState::default();
 
-        let state = game_state_reducer(initial_state, Action::SetExactAmount(Money(1337.0)));
+        let state = game_state_reducer(&mut initial_state, Action::SetExactAmount(Money(1337.0)));
 
         assert_eq!(Money(1337.0), state.finance.capital);
     }
 
     #[test]
     fn test_can_increase_co2_emission() {
-        let initial_state = GameState::default();
+        let mut initial_state = GameState::default();
 
         let state =
-            game_state_reducer(initial_state, Action::IncreaseCo2Emission(Co2Emission(1.0)));
+            game_state_reducer(&mut initial_state, Action::IncreaseCo2Emission(Co2Emission(1.0)));
 
         assert_eq!(Co2Emission(1.0), state.accumulated_co2_emission);
     }
 
     #[test]
     fn test_can_reduce_co2_emission() {
-        let initial_state = GameState::default();
+        let mut initial_state = GameState::default();
         let intermittent_state =
-            game_state_reducer(initial_state, Action::SetExactCo2Emission(Co2Emission(5.0)));
+            game_state_reducer(&mut initial_state, Action::SetExactCo2Emission(Co2Emission(5.0)));
 
         let state = game_state_reducer(
             intermittent_state,
@@ -212,10 +198,10 @@ mod tests {
 
     #[test]
     fn test_co2_emission_cannot_be_negative() {
-        let initial_state = GameState::default();
+        let mut initial_state = GameState::default();
 
         let state = game_state_reducer(
-            initial_state,
+            &mut initial_state,
             Action::IncreaseCo2Emission(Co2Emission(-1.0)),
         );
 
@@ -224,10 +210,10 @@ mod tests {
 
     #[test]
     fn test_can_set_co2_emission_to_any_value() {
-        let initial_state = GameState::default();
+        let mut initial_state = GameState::default();
 
         let state = game_state_reducer(
-            initial_state,
+            &mut initial_state,
             Action::SetExactCo2Emission(Co2Emission(1337.0)),
         );
 
@@ -236,7 +222,7 @@ mod tests {
 
     #[test]
     fn test_playing_cards_should_not_result_in_negative_emissions() {
-        let initial_state = GameState::default();
+        let mut initial_state = GameState::default();
         let card = Card {
             title: String::from("Bribe authorities"),
             help_text: String::from("A blind eye is turned for your increasing emissions..."),
@@ -244,14 +230,14 @@ mod tests {
             delta_co2: Co2Emission(-1.0),
         };
 
-        let state = game_state_reducer(initial_state, Action::PlayCard(card));
+        let state = game_state_reducer(&mut initial_state, Action::PlayCard(&card));
 
         assert_eq!(Co2Emission(0.0), state.accumulated_co2_emission,);
     }
 
     #[test]
     fn test_playing_cards_should_preserve_history() {
-        let initial_state = GameState::default();
+        let mut initial_state = GameState::default();
         let first_card = Card {
             title: String::from("Bribe authorities"),
             help_text: String::from("A blind eye is turned for your increasing emissions..."),
@@ -265,8 +251,8 @@ mod tests {
             delta_co2: Co2Emission(-2.0),
         };
 
-        let intermittent_state = game_state_reducer(initial_state, Action::PlayCard(first_card));
-        let state = game_state_reducer(intermittent_state, Action::PlayCard(second_card));
+        let intermittent_state = game_state_reducer(&mut initial_state, Action::PlayCard(&first_card));
+        let state = game_state_reducer(intermittent_state, Action::PlayCard(&second_card));
 
         assert_eq!(
             state.played_cards.first().unwrap().title,
@@ -289,7 +275,7 @@ mod tests {
             delta_co2: Co2Emission(0.0),
         };
 
-        let state = game_state_reducer(initial_state, Action::PlayCard(played_card_meta));
+        let state = game_state_reducer(&mut initial_state, Action::PlayCard(&played_card_meta));
 
         assert_eq!(PlaythroughStatus::GameOver, state.playthrough_status);
     }
@@ -305,14 +291,14 @@ mod tests {
             delta_co2: Co2Emission(0.0),
         };
 
-        let state = game_state_reducer(initial_state, Action::PlayCard(played_card_meta));
+        let state = game_state_reducer(&mut initial_state, Action::PlayCard(&played_card_meta));
 
         assert_eq!(PlaythroughStatus::Ongoing, state.playthrough_status);
     }
 
     #[test]
     fn test_reaching_higher_co2_than_the_threshold_results_in_game_over() {
-        let initial_state = GameState::default();
+        let mut initial_state = GameState::default();
         let played_card_meta = Card {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),
@@ -320,31 +306,30 @@ mod tests {
             delta_co2: CATASTROPHIC_POLLUTION_THRESHOLD + Co2Emission(1.0),
         };
 
-        let state = game_state_reducer(initial_state, Action::PlayCard(played_card_meta));
+        let state = game_state_reducer(&mut initial_state, Action::PlayCard(&played_card_meta));
 
         assert_eq!(PlaythroughStatus::GameOver, state.playthrough_status);
     }
 
     #[test]
     fn test_completing_the_required_rounds_results_in_winning() {
-        let mut state = GameState::default();
-        let played_card_meta = Card {
+        let mut state = &mut GameState::default();
+        let card = Card {
             title: String::from("A card"),
             help_text: String::from("Nobody will read this... will they?"),
             delta_profit: Money(100.0),
             delta_co2: Co2Emission(0.0),
         };
+        state.played_cards = vec![&card, &card, &card, &card, &card, &card, &card, &card];
 
-        for _ in 0..ROUNDS_TO_BEAT_THE_GAME + 1 {
-            state = game_state_reducer(state, Action::PlayCard(played_card_meta.clone()));
-        }
+        let final_state = game_state_reducer(&mut state, Action::PlayCard(&card));
 
-        assert_eq!(PlaythroughStatus::Beaten, state.playthrough_status);
+        assert_eq!(PlaythroughStatus::Beaten, final_state.playthrough_status);
     }
 
     #[test]
     fn test_failure_to_reach_profit_target_at_round_end_results_game_over() {
-        let state = GameState {
+        let mut state = GameState {
             finance: Finance {
                 capital: Money(0.0),
                 expenses: Money(1.0),
@@ -362,7 +347,7 @@ mod tests {
             delta_co2: Co2Emission(0.0),
         };
 
-        let final_state = game_state_reducer(state, Action::PlayCard(card));
+        let final_state = game_state_reducer(&mut state, Action::PlayCard(&card));
 
         assert_eq!(PlaythroughStatus::GameOver, final_state.playthrough_status)
     }
