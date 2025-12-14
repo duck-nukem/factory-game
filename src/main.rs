@@ -4,7 +4,6 @@ use tui::play_game;
 mod card;
 mod emission;
 mod finance;
-mod gui;
 mod math;
 mod state;
 mod tui;

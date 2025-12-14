@@ -8,7 +8,6 @@ use crate::{emission::Co2Emission, finance::Money};
 #[derive(Clone, Debug, Deserialize)]
 pub struct Card {
     pub title: String,
-    pub help_text: String,
     pub delta_profit: Money,
     pub delta_co2: Co2Emission,
 }
@@ -17,7 +16,6 @@ impl Default for Card {
     fn default() -> Self {
         Self {
             title: String::from("Nothing"),
-            help_text: String::from("Literally nothing"),
             delta_profit: Money(0.0),
             delta_co2: Co2Emission(0.0),
         }
@@ -91,7 +89,6 @@ mod tests {
         let deck = Deck {
             cards: vec![Card {
                 title: String::from("First"),
-                help_text: String::new(),
                 delta_profit: Money(0.0),
                 delta_co2: Co2Emission(0.0),
             }],

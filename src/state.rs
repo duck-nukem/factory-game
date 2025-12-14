@@ -239,7 +239,6 @@ mod tests {
         let initial_state = GameState::default();
         let card = Card {
             title: String::from("Bribe authorities"),
-            help_text: String::from("A blind eye is turned for your increasing emissions..."),
             delta_profit: Money(0.0),
             delta_co2: Co2Emission(-1.0),
         };
@@ -254,13 +253,11 @@ mod tests {
         let initial_state = GameState::default();
         let first_card = Card {
             title: String::from("Bribe authorities"),
-            help_text: String::from("A blind eye is turned for your increasing emissions..."),
             delta_profit: Money(-5.0),
             delta_co2: Co2Emission(5.0),
         };
         let second_card = Card {
             title: String::from("Win machinery"),
-            help_text: String::from("Congrats on your new solar-battery powered washing machine!"),
             delta_profit: Money(3.0),
             delta_co2: Co2Emission(-2.0),
         };
@@ -284,7 +281,6 @@ mod tests {
         initial_state.finance.capital = BANKRUPTCY_THRESHOLD;
         let played_card_meta = Card {
             title: String::from("A card"),
-            help_text: String::from("Nobody will read this... will they?"),
             delta_profit: Money(-1.0) - initial_state.finance.capital,
             delta_co2: Co2Emission(0.0),
         };
@@ -300,7 +296,6 @@ mod tests {
         initial_state.finance.capital = BANKRUPTCY_THRESHOLD;
         let played_card_meta = Card {
             title: String::from("A card"),
-            help_text: String::from("Nobody will read this... will they?"),
             delta_profit: Money(0.0) - initial_state.finance.capital,
             delta_co2: Co2Emission(0.0),
         };
@@ -315,7 +310,6 @@ mod tests {
         let initial_state = GameState::default();
         let played_card_meta = Card {
             title: String::from("A card"),
-            help_text: String::from("Nobody will read this... will they?"),
             delta_profit: Money(-5.0),
             delta_co2: CATASTROPHIC_POLLUTION_THRESHOLD + Co2Emission(1.0),
         };
@@ -330,7 +324,6 @@ mod tests {
         let mut state = GameState::default();
         let played_card_meta = Card {
             title: String::from("A card"),
-            help_text: String::from("Nobody will read this... will they?"),
             delta_profit: Money(100.0),
             delta_co2: Co2Emission(0.0),
         };
@@ -357,7 +350,6 @@ mod tests {
         };
         let card = Card {
             title: String::new(),
-            help_text: String::new(),
             delta_profit: Money(0.0),
             delta_co2: Co2Emission(0.0),
         };
